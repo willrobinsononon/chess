@@ -1,0 +1,32 @@
+<head>
+    <title>Chess</title>
+    <style>
+        #board {
+            background-image: url("static/chessboard.png");
+            background-size: cover;
+        }
+
+        .piece {
+            position: absolute;
+            cursor: pointer;
+        }
+
+        .moveDisplay {
+            position: absolute;
+            background-color: rgba(20,85,30,.3);
+            cursor: pointer;
+        }
+
+        .selDisplay {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+    </style>
+</head>
+<body>
+    <div id="board">
+
+    </div>
+    <script type = "module" src="src/game.js"></script>
+</body> 
