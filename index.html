@@ -1,9 +1,27 @@
 <head>
     <title>Chess</title>
     <style>
+        body {
+            text-align: center;
+        }
+
+        #flipButton {
+            font-family: arial;
+            font-size: 20px;
+            border: 2px;
+            border-style: solid;
+            border-radius: 4px;
+            background-color: rgba(20, 61, 85, 0.2);
+            width: 100px;
+            display: inline-block;
+            padding: 5px;
+            cursor: pointer;
+        }
+
         #board {
             background-image: url("static/chessboard.png");
             background-size: cover;
+            display: inline-block;
         }
 
         .piece {
@@ -27,6 +45,7 @@
     </style>
 </head>
 <body>
+    <br><div id="flipButton">Flip Board</div><br><br>
     <div id="board">
 
     </div>

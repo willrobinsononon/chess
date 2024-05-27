@@ -5,6 +5,7 @@ export class Board {
     squareSize;
     boardSize;
     squares = [];
+    orientation = 1;
 
     constructor(squareSize, boardSize) {
         this.squareSize = squareSize;

@@ -2,19 +2,19 @@ class Piece {
     render = document.createElement("div");
 
     color;
-    currentSquare;
+    square;
 
     constructor(startSquare, color, board, currentSelection) {
         this.color = color;
         this.render.classList.add(color);
         this.render.classList.add('piece');
-        this.currentSquare = startSquare;
+        this.square = startSquare;
         board.squares[startSquare.x][startSquare.y].vacant = false;
         board.squares[startSquare.x][startSquare.y].occupant = this;
 
         this.render.style.width = board.squareSize;
         this.render.style.height = board.squareSize;
-        this.render.style.transform = `translate(${startSquare.x * board.squareSize}px, ${(7 - startSquare.y) * board.squareSize}px)`
+        this.render.style.transform = `translate(${startSquare.x * board.squareSize}px, ${(3.5 + board.orientation * (3.5 - startSquare.y)) * board.squareSize}px)`
 
         this.render.onclick = () => { this.select(currentSelection, board) };
         board.render.appendChild(this.render);
@@ -39,22 +39,36 @@ class Piece {
 
     move(newSquare, board, currentSelection) {
 
+        if (board.squares[newSquare.x][newSquare.y].vacant === false) {
+            if (board.squares[newSquare.x][newSquare.y].occupant.color === currentSelection.piece.color) {
+                return
+            }
+            else {
+                this.capture(newSquare, board)
+            }
+        }
+
         //deselect
         this.deselect(currentSelection, board);
 
-        //update board and set currentsquare
-        board.squares[this.currentSquare.x][this.currentSquare.y].vacant = true;
-        board.squares[this.currentSquare.x][this.currentSquare.y].occupant = {};
-        this.currentSquare = newSquare;
-        board.squares[this.currentSquare.x][this.currentSquare.y].vacant = false;
-        board.squares[this.currentSquare.x][this.currentSquare.y].occupant = this;
+        //update board and set square
+        board.squares[this.square.x][this.square.y].vacant = true;
+        board.squares[this.square.x][this.square.y].occupant = {};
+        this.square = newSquare;
+        board.squares[this.square.x][this.square.y].vacant = false;
+        board.squares[this.square.x][this.square.y].occupant = this;
 
         //change transform for display
-        this.render.style.transform = `translate(${this.currentSquare.x * board.squareSize}px, ${(7 - this.currentSquare.y) * board.squareSize}px)`
+        this.render.style.transform = `translate(${this.square.x * board.squareSize}px, ${(3.5 + board.orientation * (3.5 - this.square.y)) * board.squareSize}px)`
     }
 
     isPawn() {
         return this instanceof Pawn;
+    }
+
+    capture(square, board) {
+        board.squares[square.x][square.y].occupant.render.remove();
+        //remove from white / black pieces and add to score
     }
 }
 
@@ -136,7 +150,7 @@ export class Bishop extends Piece {
 export class Pawn extends Piece {
 
     maxMoves() {
-        if ((this.color === 'white' && this.currentSquare.y === 1) || (this.color === 'black' && this.currentSquare.y === 6)) {
+        if ((this.color === 'white' && this.square.y === 1) || (this.color === 'black' && this.square.y === 6)) {
                 return 2;
             }
             else {

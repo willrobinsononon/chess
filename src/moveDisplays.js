@@ -8,7 +8,7 @@ class MoveDisplay {
         this.render.style.width = board.squareSize;
         this.render.style.height = board.squareSize;
         this.square = square;
-        this.render.style.transform = `translate(${square.x * board.squareSize}px, ${(7 - square.y) * board.squareSize}px)`;
+        this.render.style.transform = `translate(${square.x * board.squareSize}px, ${(3.5 + board.orientation * (3.5 - square.y)) * board.squareSize}px)`;
         this.render.onclick = () => { this.moveCurrentSelection(square, board, currentSelection); };
         board.render.appendChild(this.render);
     }
@@ -22,22 +22,25 @@ class MoveDisplay {
 class selDisplay {
     render = document.createElement("div");
 
+    square;
+
     constructor(square, board) {
         this.render.classList.add("selDisplay");
         this.render.style.width = board.squareSize;
         this.render.style.height = board.squareSize;
-        this.render.style.transform = `translate(${square.x * board.squareSize}px, ${(7 - square.y) * board.squareSize}px)`;
+        this.square = square;
+        this.render.style.transform = `translate(${square.x * board.squareSize}px, ${(3.5 + board.orientation * (3.5 - square.y)) * board.squareSize}px)`;
         board.render.appendChild(this.render);
     }
 }
 
 
 export function displayMoves(currentSelection, board) {
-    new selDisplay(currentSelection.piece.currentSquare, board);
+    currentSelection.moveDisplays.push(new selDisplay(currentSelection.piece.square, board));
     let directions = currentSelection.piece.directions;
     let maxMoves = currentSelection.piece.maxMoves();
     for (let i in directions) {
-        let iteratorSquare = {x: currentSelection.piece.currentSquare.x + directions[i].x, y: currentSelection.piece.currentSquare.y + directions[i].y};
+        let iteratorSquare = {x: currentSelection.piece.square.x + directions[i].x, y: currentSelection.piece.square.y + directions[i].y};
         let count = 0;
         while (
             (!maxMoves || count < maxMoves ) &&
@@ -58,22 +61,20 @@ export function displayMoves(currentSelection, board) {
         }
         if (
             currentSelection.piece.isPawn() && 
-            (currentSelection.piece.currentSquare.y + (1 * currentSelection.piece.direction) > 0) &&
-            (currentSelection.piece.currentSquare.y + (1 * currentSelection.piece.direction) < board.squares[0].length)
+            (currentSelection.piece.square.y + (1 * currentSelection.piece.direction) >= 0) &&
+            (currentSelection.piece.square.y + (1 * currentSelection.piece.direction) < board.squares[0].length)
         ) {
             if (
-                board.squares[currentSelection.piece.currentSquare.x + 1][currentSelection.piece.currentSquare.y + (1 * currentSelection.piece.direction)].vacant === false &&
-                board.squares[currentSelection.piece.currentSquare.x + 1][currentSelection.piece.currentSquare.y + (1 * currentSelection.piece.direction)].occupant.color != currentSelection.piece.color
+                board.squares[currentSelection.piece.square.x + 1][currentSelection.piece.square.y + (1 * currentSelection.piece.direction)].vacant === false &&
+                board.squares[currentSelection.piece.square.x + 1][currentSelection.piece.square.y + (1 * currentSelection.piece.direction)].occupant.color != currentSelection.piece.color
             ) {
-                console.log('test1')
-                currentSelection.moveDisplays.push(new MoveDisplay({x: currentSelection.piece.currentSquare.x + 1, y: currentSelection.piece.currentSquare.y + (1 * currentSelection.piece.direction)}, board, currentSelection));
+                currentSelection.moveDisplays.push(new MoveDisplay({x: currentSelection.piece.square.x + 1, y: currentSelection.piece.square.y + (1 * currentSelection.piece.direction)}, board, currentSelection));
             }
             if (
-                board.squares[currentSelection.piece.currentSquare.x - 1][currentSelection.piece.currentSquare.y + (1 * currentSelection.piece.direction)].vacant === false &&
-                board.squares[currentSelection.piece.currentSquare.x - 1][currentSelection.piece.currentSquare.y + (1 * currentSelection.piece.direction)].occupant.color != currentSelection.piece.color
+                board.squares[currentSelection.piece.square.x - 1][currentSelection.piece.square.y + (1 * currentSelection.piece.direction)].vacant === false &&
+                board.squares[currentSelection.piece.square.x - 1][currentSelection.piece.square.y + (1 * currentSelection.piece.direction)].occupant.color != currentSelection.piece.color
             ) {
-                console.log('test2');
-                currentSelection.moveDisplays.push(new MoveDisplay({x: currentSelection.piece.currentSquare.x - 1, y: currentSelection.piece.currentSquare.y + (1 * currentSelection.piece.direction)}, board, currentSelection));
+                currentSelection.moveDisplays.push(new MoveDisplay({x: currentSelection.piece.square.x - 1, y: currentSelection.piece.square.y + (1 * currentSelection.piece.direction)}, board, currentSelection));
             }
         }
     }
@@ -84,5 +85,4 @@ export function hideMoves(currentSelection) {
         e.render.remove();
     })
     currentSelection.moveDisplays = [];
-    document.querySelectorAll(".selDisplay").forEach(e => e.remove());
 }
