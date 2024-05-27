@@ -52,6 +52,10 @@ class Piece {
         //change transform for display
         this.render.style.transform = `translate(${this.currentSquare.x * board.squareSize}px, ${(7 - this.currentSquare.y) * board.squareSize}px)`
     }
+
+    isPawn() {
+        return this instanceof Pawn;
+    }
 }
 
 export class King extends Piece {
@@ -140,7 +144,9 @@ export class Pawn extends Piece {
             }
     }
 
+    direction;
     directions;
+
     
     constructor(color, column, board, currentSelection) {
         super({x:column, y: color==='white' ? 1 : 6}, color, board, currentSelection);
@@ -148,9 +154,11 @@ export class Pawn extends Piece {
         this.render.style.backgroundImage = `url("static/pieces/${color}/pawn.png")`;
         if (this.color === 'white') {
             this.directions = [{x: 0, y: 1}];
+            this.direction = 1;
         }
         else if (this.color === 'black') {
             this.directions = [{x: 0, y: -1}];
+            this.direction = -1;
         }
     }
 }

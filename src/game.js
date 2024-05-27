@@ -11,19 +11,6 @@ var currentSelection = {
     moveDisplays: []
 };
 
-class selDisplay {
-    render = document.createElement("div");
-
-    constructor(square) {
-        this.render.classList.add("selDisplay");
-        this.render.style.width = board.squareSize;
-        this.render.style.height = board.squareSize;
-        this.render.style.transform = `translate(${square.x * board.squareSize}px, ${(7 - square.y) * board.squareSize}px)`;
-        board.render.appendChild(this.render);
-    }
-}
-
-
 //game creation functions
 
 function createSide(color, board) {
