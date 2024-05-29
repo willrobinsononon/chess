@@ -26,4 +26,8 @@ export class Board {
 class Square {
     vacant = true;
     occupant = {};
+    controlledBy = {
+        white: false,
+        black: false
+    }
 }

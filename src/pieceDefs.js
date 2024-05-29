@@ -26,6 +26,8 @@ export class OnBoardElement {
 class Piece extends OnBoardElement {
 
     color;
+    availableMoves = [];
+    moveDisplays = [];
 
     constructor(params) {
         super(params);
@@ -52,26 +54,44 @@ class Piece extends OnBoardElement {
     }
 
     select() {
-        if (this.gameState.currentSelection.piece) {
-            this.gameState.currentSelection.piece.deselect();
+        if (this.gameState.currentSelection) {
+            this.gameState.currentSelection.deselect();
         }
-        this.gameState.currentSelection.piece = this;
-        this.gameState.currentSelection.displayMoves(this.gameState);
+        this.gameState.currentSelection = this;
+        this.displayMoves();
         this.render.onclick = () => { this.deselect() };
     }
 
     deselect() {
-        if (this.gameState.currentSelection.piece = this) {
-            this.gameState.currentSelection.hideMoves(this.gameState);
-            this.gameState.currentSelection.piece = false;
+        if (this.gameState.currentSelection = this) {
+            this.hideMoves();
+            this.gameState.currentSelection = false;
         }
         this.render.onclick = () => { this.select() };
+    }
+
+    displayMoves() {
+        this.moveDisplays.push(new SelectDisplay({gameState: this.gameState, square: this.square}))
+        this.availableMoves.forEach(square => this.moveDisplays.push(new MoveDisplay({square: square, gameState: this.gameState, piece: this, castle: false})));
+        
+        if (this.isKing && this.castlea === true) {
+            this.moveDisplays.push(new MoveDisplay({square: {x: 2, y: this.square.y}, gameState: this.gameState, piece: this, castle: 'a'}));
+        }
+        else if (this.isKing() && this.castleh === true) {
+            this.moveDisplays.push(new MoveDisplay({square: {x: 6, y: this.square.y}, gameState: this.gameState, piece: this, castle: 'h'}));
+        }
+    }
+
+    hideMoves() {
+        this.moveDisplays.forEach(moveDisplay => {
+            moveDisplay.render.remove();
+        })
     }
 
     move(newSquare) {
 
         if (this.gameState.board.squares[newSquare.x][newSquare.y].vacant === false) {
-            if (this.gameState.board.squares[newSquare.x][newSquare.y].occupant.color === this.gameState.currentSelection.piece.color) {
+            if (this.gameState.board.squares[newSquare.x][newSquare.y].occupant.color === this.gameState.currentSelection.color) {
                 return
             }
             else {
@@ -90,6 +110,8 @@ class Piece extends OnBoardElement {
         this.gameState.board.squares[this.square.x][this.square.y].occupant = this;
         
         this.updatePosition(newSquare);
+
+        this.gameState.endTurn(this.gameState);
     }
 
     isPawn() {
@@ -108,6 +130,83 @@ class Piece extends OnBoardElement {
         this.gameState.board.squares[square.x][square.y].occupant.render.remove();
         //remove from white / black pieces and add to score
     }
+
+    getMoves() {
+        var board = this.gameState.board;
+
+        this.availableMoves = [];
+        board.squares.forEach(column => column.forEach(square => square.controlledBy[this.color] = false));
+        for (let i in this.directions) {
+            let iteratorSquare = {x: this.square.x + this.directions[i].x, y: this.square.y + this.directions[i].y};
+            let count = 0;
+            while (
+                (!this.maxMoves() || count < this.maxMoves() ) &&
+                (iteratorSquare.x >= 0 && iteratorSquare.y >= 0 && iteratorSquare.x < board.squares.length && iteratorSquare.y < board.squares[0].length) &&
+                (board.squares[iteratorSquare.x][iteratorSquare.y].vacant === true)
+            ) {
+                
+                this.availableMoves.push(iteratorSquare);
+                board.squares[iteratorSquare.x][iteratorSquare.y].controlledBy[this.color] = true;
+                iteratorSquare = {x: iteratorSquare.x + this.directions[i].x, y: iteratorSquare.y + this.directions[i].y};
+                count += 1;
+            }
+            if (
+                (!this.isPawn()) &&
+                (!this.maxMoves() || count < this.maxMoves() ) &&
+                (iteratorSquare.x >= 0 && iteratorSquare.y >= 0 && iteratorSquare.x < board.squares.length && iteratorSquare.y < board.squares[0].length) &&
+                (board.squares[iteratorSquare.x][iteratorSquare.y].vacant === false && board.squares[iteratorSquare.x][iteratorSquare.y].occupant.color != this.color)
+            ) {
+                this.availableMoves.push(iteratorSquare);
+                board.squares[iteratorSquare.x][iteratorSquare.y].controlledBy[this.color] = true;
+            }
+        }
+
+        //add pawn attack squares
+        if (
+            this.isPawn() && 
+            (this.square.y + (1 * this.direction) >= 0) &&
+            (this.square.y + (1 * this.direction) < board.squares[0].length)
+        ) {
+            if (
+                this.square.x + 1 < board.squares.length &&
+                board.squares[this.square.x + 1][this.square.y + (1 * this.direction)].vacant === false &&
+                board.squares[this.square.x + 1][this.square.y + (1 * this.direction)].occupant.color != this.color
+            ) {
+                this.availableMoves.push({x: this.square.x + 1, y: this.square.y + (1 * this.direction)});
+                board.squares[this.square.x + 1][this.square.y + (1 * this.direction)].controlledBy[this.color] = true;
+            }
+            if (
+                this.square.x - 1 >= 0 &&
+                board.squares[this.square.x - 1][this.square.y + (1 * this.direction)].vacant === false &&
+                board.squares[this.square.x - 1][this.square.y + (1 * this.direction)].occupant.color != this.color
+            ) {
+                this.availableMoves.push({x: this.square.x - 1, y: this.square.y + (1 * this.direction)});
+                board.squares[this.square.x - 1][this.square.y + (1 * this.direction)].controlledBy[this.color] = true;
+            }
+        }
+
+        //add castling square
+        if (this.isKing() && this.hasMoved === false) {
+            if (
+                (this.gameState.pieces[this.color].rooka.hasMoved === false) &&
+                (
+                    board.squares[1][this.square.y].vacant === true &&
+                    board.squares[2][this.square.y].vacant === true
+                )
+            ) {
+                this.castlea = true;
+            }
+            if (
+                (this.gameState.pieces[this.color].rookh.hasMoved === false) &&
+                (
+                    board.squares[6][this.square.y].vacant === true &&
+                    board.squares[5][this.square.y].vacant === true
+                )
+            ) {
+                this.castleh = true;
+            }
+        }
+    }
 }
 
 export class King extends Piece {
@@ -117,6 +216,8 @@ export class King extends Piece {
     }
 
     hasMoved = false;
+    castlea = false;
+    castleh = false;
 
     directions = allDirections;
 
@@ -131,6 +232,16 @@ export class King extends Piece {
         }
 
         super.move(newSquare);
+    }
+    
+    castle(square, castle) {
+        this.move(square);
+        if (castle === 'a') {
+            this.gameState.pieces[this.color].rooka.move({x: 3, y: this.square.y});
+        }
+        else if (castle === 'h') {
+            this.gameState.pieces[this.color].rookh.move({x: 5, y: this.square.y});
+        }
     }
 }
 
@@ -274,3 +385,39 @@ var knightHop = [
     moveConstructor([backward, left, left]),
     moveConstructor([backward, right, right])
 ];
+
+
+
+//Move Displays
+
+class MoveDisplay extends OnBoardElement {
+
+    piece;
+    castle;
+
+    constructor(params) {
+        super(params);
+        this.render.classList.add("moveDisplay");
+        this.piece = params.piece
+        this.castle = params.castle;
+
+        this.render.onclick = () => { this.movePiece(this.square); };
+    }
+
+    movePiece(square) {
+        if (this.castle) {
+            this.piece.castle(square, this.castle);
+        }
+        else {
+            this.piece.move(square);
+        }
+    }
+}
+
+class SelectDisplay extends OnBoardElement {
+
+    constructor(params) {
+        super(params);
+        this.render.classList.add("selDisplay");
+    }
+}

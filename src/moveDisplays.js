@@ -1,6 +1,6 @@
 import {OnBoardElement} from './pieceDefs.js';
 
-class MoveDisplay extends OnBoardElement {
+export class MoveDisplay extends OnBoardElement {
 
 
     constructor(params) {
