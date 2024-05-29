@@ -1,88 +1,136 @@
-class MoveDisplay {
-    render = document.createElement("div");
+import {OnBoardElement} from './pieceDefs.js';
 
-    square;
+class MoveDisplay extends OnBoardElement {
 
-    constructor(square, board, currentSelection) {
+
+    constructor(params) {
+        super(params);
         this.render.classList.add("moveDisplay");
-        this.render.style.width = board.squareSize;
-        this.render.style.height = board.squareSize;
-        this.square = square;
-        this.render.style.transform = `translate(${square.x * board.squareSize}px, ${(3.5 + board.orientation * (3.5 - square.y)) * board.squareSize}px)`;
-        this.render.onclick = () => { this.moveCurrentSelection(square, board, currentSelection); };
-        board.render.appendChild(this.render);
+
+        this.render.onclick = () => { this.moveCurrentSelection(this.square); };
     }
 
-    moveCurrentSelection(square, board, currentSelection ) {
-        currentSelection.piece.move(square, board, currentSelection);
+    moveCurrentSelection(square) {
+        this.gameState.currentSelection.piece.move(square);
     }
-
 }
 
-class selDisplay {
-    render = document.createElement("div");
+class selDisplay extends OnBoardElement {
 
-    square;
-
-    constructor(square, board) {
+    constructor(params) {
+        super({...params, square: params.gameState.currentSelection.piece.square});
         this.render.classList.add("selDisplay");
-        this.render.style.width = board.squareSize;
-        this.render.style.height = board.squareSize;
-        this.square = square;
-        this.render.style.transform = `translate(${square.x * board.squareSize}px, ${(3.5 + board.orientation * (3.5 - square.y)) * board.squareSize}px)`;
-        board.render.appendChild(this.render);
     }
 }
 
+class CastlingSquare extends MoveDisplay {
 
-export function displayMoves(currentSelection, board) {
-    currentSelection.moveDisplays.push(new selDisplay(currentSelection.piece.square, board));
-    let directions = currentSelection.piece.directions;
-    let maxMoves = currentSelection.piece.maxMoves();
+    rookCastleParams = {
+        rookToMove: false,
+        rookCastlingSquare: {}
+    };
+
+    constructor(params) {
+        super(params);
+        
+        if (this.square.x === 2) {
+            this.rookCastleParams.rookToMove = this.gameState.board.squares[0][this.gameState.currentSelection.piece.square.y].occupant;
+            this.rookCastleParams.rookCastlingSquare = {x: 3, y: this.gameState.currentSelection.piece.square.y};
+        }
+        else if (this.square.x ===6) {
+            this.rookCastleParams.rookToMove = this.gameState.board.squares[7][this.gameState.currentSelection.piece.square.y].occupant;
+            this.rookCastleParams.rookCastlingSquare = {x: 5, y: this.gameState.currentSelection.piece.square.y};
+        }
+    }
+
+    moveCurrentSelection(square) {
+        this.gameState.currentSelection.piece.move(square);
+        this.rookCastleParams.rookToMove.move(this.rookCastleParams.rookCastlingSquare);
+    }
+
+}
+
+
+export function displayMoves(gameState) {
+    var selPiece = gameState.currentSelection.piece;
+    var moveDisplays = gameState.currentSelection.moveDisplays;
+    var board = gameState.board;
+
+    moveDisplays.push(new selDisplay({gameState: gameState}));
+    let directions = selPiece.directions;
+    let maxMoves = selPiece.maxMoves();
     for (let i in directions) {
-        let iteratorSquare = {x: currentSelection.piece.square.x + directions[i].x, y: currentSelection.piece.square.y + directions[i].y};
+        let iteratorSquare = {x: selPiece.square.x + directions[i].x, y: selPiece.square.y + directions[i].y};
         let count = 0;
         while (
             (!maxMoves || count < maxMoves ) &&
             (iteratorSquare.x >= 0 && iteratorSquare.y >= 0 && iteratorSquare.x < board.squares.length && iteratorSquare.y < board.squares[0].length) &&
             (board.squares[iteratorSquare.x][iteratorSquare.y].vacant === true)
         ) {
-            currentSelection.moveDisplays.push(new MoveDisplay(iteratorSquare, board, currentSelection));
+            moveDisplays.push(new MoveDisplay({square: iteratorSquare, gameState: gameState}));
             iteratorSquare = {x: iteratorSquare.x + directions[i].x, y: iteratorSquare.y + directions[i].y};
             count += 1;
         }
         if (
-            (!currentSelection.piece.isPawn()) &&
+            (!selPiece.isPawn()) &&
             (!maxMoves || count < maxMoves ) &&
             (iteratorSquare.x >= 0 && iteratorSquare.y >= 0 && iteratorSquare.x < board.squares.length && iteratorSquare.y < board.squares[0].length) &&
-            (board.squares[iteratorSquare.x][iteratorSquare.y].vacant === false && board.squares[iteratorSquare.x][iteratorSquare.y].occupant.color != currentSelection.piece.color)
+            (board.squares[iteratorSquare.x][iteratorSquare.y].vacant === false && board.squares[iteratorSquare.x][iteratorSquare.y].occupant.color != selPiece.color)
         ) {
-            currentSelection.moveDisplays.push(new MoveDisplay(iteratorSquare, board, currentSelection));
+            moveDisplays.push(new MoveDisplay({square: iteratorSquare, gameState: gameState}));
+        }
+    }
+
+     //add pawn attack squares
+     if (
+        selPiece.isPawn() && 
+        (selPiece.square.y + (1 * selPiece.direction) >= 0) &&
+        (selPiece.square.y + (1 * selPiece.direction) < board.squares[0].length)
+    ) {
+        if (
+            selPiece.square.x + 1 < board.squares.length &&
+            board.squares[selPiece.square.x + 1][selPiece.square.y + (1 * selPiece.direction)].vacant === false &&
+            board.squares[selPiece.square.x + 1][selPiece.square.y + (1 * selPiece.direction)].occupant.color != selPiece.color
+        ) {
+            moveDisplays.push(new MoveDisplay({square: {x: selPiece.square.x + 1, y: selPiece.square.y + (1 * selPiece.direction)}, gameState: gameState}));
         }
         if (
-            currentSelection.piece.isPawn() && 
-            (currentSelection.piece.square.y + (1 * currentSelection.piece.direction) >= 0) &&
-            (currentSelection.piece.square.y + (1 * currentSelection.piece.direction) < board.squares[0].length)
+            selPiece.square.x - 1 >= 0 &&
+            board.squares[selPiece.square.x - 1][selPiece.square.y + (1 * selPiece.direction)].vacant === false &&
+            board.squares[selPiece.square.x - 1][selPiece.square.y + (1 * selPiece.direction)].occupant.color != selPiece.color
         ) {
-            if (
-                board.squares[currentSelection.piece.square.x + 1][currentSelection.piece.square.y + (1 * currentSelection.piece.direction)].vacant === false &&
-                board.squares[currentSelection.piece.square.x + 1][currentSelection.piece.square.y + (1 * currentSelection.piece.direction)].occupant.color != currentSelection.piece.color
-            ) {
-                currentSelection.moveDisplays.push(new MoveDisplay({x: currentSelection.piece.square.x + 1, y: currentSelection.piece.square.y + (1 * currentSelection.piece.direction)}, board, currentSelection));
-            }
-            if (
-                board.squares[currentSelection.piece.square.x - 1][currentSelection.piece.square.y + (1 * currentSelection.piece.direction)].vacant === false &&
-                board.squares[currentSelection.piece.square.x - 1][currentSelection.piece.square.y + (1 * currentSelection.piece.direction)].occupant.color != currentSelection.piece.color
-            ) {
-                currentSelection.moveDisplays.push(new MoveDisplay({x: currentSelection.piece.square.x - 1, y: currentSelection.piece.square.y + (1 * currentSelection.piece.direction)}, board, currentSelection));
-            }
+            moveDisplays.push(new MoveDisplay({square: {x: selPiece.square.x - 1, y: selPiece.square.y + (1 * selPiece.direction)}, gameState: gameState}));
+        }
+    }
+
+    //add castling square
+    if (selPiece.isKing() && selPiece.hasMoved === false) {
+        if (
+            (gameState.pieces[selPiece.color].rooka.hasMoved === false) &&
+            (
+                board.squares[1][selPiece.square.y].vacant === true &&
+                board.squares[2][selPiece.square.y].vacant === true
+            )
+        ) {
+            moveDisplays.push(new CastlingSquare({square: {x: 2, y: selPiece.square.y}, gameState: gameState}));
+        }
+        if (
+            (gameState.pieces[selPiece.color].rookh.hasMoved === false) &&
+            (
+                board.squares[6][selPiece.square.y].vacant === true &&
+                board.squares[5][selPiece.square.y].vacant === true
+            )
+        ) {
+            moveDisplays.push(new CastlingSquare({square: {x: 6, y: selPiece.square.y}, gameState: gameState}));
         }
     }
 }
 
-export function hideMoves(currentSelection) {
-    currentSelection.moveDisplays.forEach(e => {
+export function hideMoves(gameState) {
+    var moveDisplays = gameState.currentSelection.moveDisplays;
+
+    moveDisplays.forEach(e => {
         e.render.remove();
     })
-    currentSelection.moveDisplays = [];
+    moveDisplays = [];
 }

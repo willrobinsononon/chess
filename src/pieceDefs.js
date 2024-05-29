@@ -1,73 +1,111 @@
-class Piece {
+export class OnBoardElement {
     render = document.createElement("div");
 
-    color;
     square;
+    gameState;
 
-    constructor(startSquare, color, board, currentSelection) {
-        this.color = color;
-        this.render.classList.add(color);
+    constructor(params) {
+        //store references to external variables
+        
+        this.gameState = params.gameState;
+        this.square = params.square;
+
+        //create render paramaters
+        this.render.style.width = this.gameState.board.squareSize;
+        this.render.style.height = this.gameState.board.squareSize;
+        this.updatePosition(this.square);
+        this.gameState.board.render.appendChild(this.render);
+    }
+
+    updatePosition(newSquare) {
+        this.render.style.transform = `translate(${(3.5 - this.gameState.board.orientation * (3.5 - newSquare.x)) * this.gameState.board.squareSize}px, ${(3.5 + this.gameState.board.orientation * (3.5 - newSquare.y)) * this.gameState.board.squareSize}px)`
+    }
+
+}
+
+class Piece extends OnBoardElement {
+
+    color;
+
+    constructor(params) {
+        super(params);
+        //store color
+        this.color = params.color;
+
+        //create piece specific render paramaters
         this.render.classList.add('piece');
-        this.square = startSquare;
-        board.squares[startSquare.x][startSquare.y].vacant = false;
-        board.squares[startSquare.x][startSquare.y].occupant = this;
+        this.render.classList.add(this.color);
 
-        this.render.style.width = board.squareSize;
-        this.render.style.height = board.squareSize;
-        this.render.style.transform = `translate(${startSquare.x * board.squareSize}px, ${(3.5 + board.orientation * (3.5 - startSquare.y)) * board.squareSize}px)`
-
-        this.render.onclick = () => { this.select(currentSelection, board) };
-        board.render.appendChild(this.render);
+        //store square and populate board
+        this.gameState.board.squares[this.square.x][this.square.y].vacant = false;
+        this.gameState.board.squares[this.square.x][this.square.y].occupant = this;
     }
 
-    select(currentSelection, board) {
-        if (currentSelection.piece) {
-            currentSelection.piece.deselect(currentSelection, board);
+    enable() {
+        this.render.onclick = () => { this.select() };
+        this.render.classList.remove('disabled');
+    }
+
+    disable() {
+        this.render.onclick = false;
+        this.render.classList.add('disabled');
+    }
+
+    select() {
+        if (this.gameState.currentSelection.piece) {
+            this.gameState.currentSelection.piece.deselect();
         }
-        currentSelection.piece = this;
-        currentSelection.displayMoves(currentSelection, board);
-        this.render.onclick = () => { this.deselect(currentSelection, board) };
+        this.gameState.currentSelection.piece = this;
+        this.gameState.currentSelection.displayMoves(this.gameState);
+        this.render.onclick = () => { this.deselect() };
     }
 
-    deselect(currentSelection, board) {
-        if (currentSelection.piece = this) {
-            currentSelection.hideMoves(currentSelection);
-            currentSelection.piece = false;
+    deselect() {
+        if (this.gameState.currentSelection.piece = this) {
+            this.gameState.currentSelection.hideMoves(this.gameState);
+            this.gameState.currentSelection.piece = false;
         }
-        this.render.onclick = () => { this.select(currentSelection, board) };
+        this.render.onclick = () => { this.select() };
     }
 
-    move(newSquare, board, currentSelection) {
+    move(newSquare) {
 
-        if (board.squares[newSquare.x][newSquare.y].vacant === false) {
-            if (board.squares[newSquare.x][newSquare.y].occupant.color === currentSelection.piece.color) {
+        if (this.gameState.board.squares[newSquare.x][newSquare.y].vacant === false) {
+            if (this.gameState.board.squares[newSquare.x][newSquare.y].occupant.color === this.gameState.currentSelection.piece.color) {
                 return
             }
             else {
-                this.capture(newSquare, board)
+                this.capture(newSquare);
             }
         }
 
         //deselect
-        this.deselect(currentSelection, board);
+        this.deselect();
 
         //update board and set square
-        board.squares[this.square.x][this.square.y].vacant = true;
-        board.squares[this.square.x][this.square.y].occupant = {};
+        this.gameState.board.squares[this.square.x][this.square.y].vacant = true;
+        this.gameState.board.squares[this.square.x][this.square.y].occupant = {};
         this.square = newSquare;
-        board.squares[this.square.x][this.square.y].vacant = false;
-        board.squares[this.square.x][this.square.y].occupant = this;
-
-        //change transform for display
-        this.render.style.transform = `translate(${this.square.x * board.squareSize}px, ${(3.5 + board.orientation * (3.5 - this.square.y)) * board.squareSize}px)`
+        this.gameState.board.squares[this.square.x][this.square.y].vacant = false;
+        this.gameState.board.squares[this.square.x][this.square.y].occupant = this;
+        
+        this.updatePosition(newSquare);
     }
 
     isPawn() {
         return this instanceof Pawn;
     }
 
-    capture(square, board) {
-        board.squares[square.x][square.y].occupant.render.remove();
+    isKing() {
+        return this instanceof King;
+    }
+
+    isRook() {
+        return this instanceof Rook;
+    }
+
+    capture(square) {
+        this.gameState.board.squares[square.x][square.y].occupant.render.remove();
         //remove from white / black pieces and add to score
     }
 }
@@ -78,12 +116,21 @@ export class King extends Piece {
         return 1;
     }
 
+    hasMoved = false;
+
     directions = allDirections;
 
-    constructor(color, board, currentSelection) {
-        super({x:4, y: color==='white' ? 0 : 7}, color, board, currentSelection);
+    constructor(params) {
+        super({...params, square: {x:4, y: params.color==='white' ? 0 : 7}});
         this.render.classList.add("king");
-        this.render.style.backgroundImage = `url("static/pieces/${color}/king.png")`;
+    }
+
+    move(newSquare) {
+        if (this.hasMoved === false) {
+            this.hasMoved = true;
+        }
+
+        super.move(newSquare);
     }
 }
 
@@ -95,10 +142,9 @@ export class Queen extends Piece {
 
     directions = allDirections;
 
-    constructor(color, board, currentSelection) {
-        super({x:3, y: color==='white' ? 0 : 7}, color, board, currentSelection);
+    constructor(params) {
+        super({...params, square: {x:3, y: params.color==='white' ? 0 : 7}});
         this.render.classList.add("queen");
-        this.render.style.backgroundImage = `url("static/pieces/${color}/queen.png")`;
     }
 }
 
@@ -108,12 +154,21 @@ export class Rook extends Piece {
         return false;
     }
 
+    move(newSquare) {
+        if (this.hasMoved === false) {
+            this.hasMoved = true;
+        }
+
+        super.move(newSquare);
+    }
+
+    hasMoved = false;
+
     directions = straightLines;
 
-    constructor(color, column, board, currentSelection) {
-        super({x:column, y: color==='white' ? 0 : 7}, color, board, currentSelection);
+    constructor(params) {
+        super({...params, square: {x:params.column, y: params.color==='white' ? 0 : 7}});
         this.render.classList.add("rook");
-        this.render.style.backgroundImage = `url("static/pieces/${color}/rook.png")`;
     }
 }
 
@@ -125,10 +180,9 @@ export class Knight extends Piece {
 
     directions = knightHop;
 
-    constructor(color, column, board, currentSelection) {
-        super({x:column, y: color==='white' ? 0 : 7}, color, board, currentSelection);
+    constructor(params) {
+        super({...params, square: {x:params.column, y: params.color==='white' ? 0 : 7}});
         this.render.classList.add("knight");
-        this.render.style.backgroundImage = `url("static/pieces/${color}/knight.png")`;
     }
 }
 
@@ -140,10 +194,9 @@ export class Bishop extends Piece {
 
     directions = diagonals;
 
-    constructor(color, column, board, currentSelection) {
-        super({x:column, y: color==='white' ? 0 : 7}, color, board, currentSelection);
+    constructor(params) {
+        super({...params, square: {x:params.column, y: params.color==='white' ? 0 : 7}});
         this.render.classList.add("bishop");
-        this.render.style.backgroundImage = `url("static/pieces/${color}/bishop.png")`;
     }
 }
 
@@ -162,10 +215,9 @@ export class Pawn extends Piece {
     directions;
 
     
-    constructor(color, column, board, currentSelection) {
-        super({x:column, y: color==='white' ? 1 : 6}, color, board, currentSelection);
+    constructor(params) {
+        super({...params, square: {x:params.column, y: params.color==='white' ? 1 : 6}});
         this.render.classList.add("pawn");
-        this.render.style.backgroundImage = `url("static/pieces/${color}/pawn.png")`;
         if (this.color === 'white') {
             this.directions = [{x: 0, y: 1}];
             this.direction = 1;
@@ -180,33 +232,45 @@ export class Pawn extends Piece {
 
 //move definitions
 
+function moveConstructor(moves) {
+    let x = 0;
+    let y = 0;
+    moves.forEach(move => {
+        x += move.x;
+        y += move.y
+    });
+
+    return {x: x, y: y};
+}
+
+const forward = {x: 0, y: 1};
+const backward = {x: 0, y: -1};
+const left = {x: -1, y: 0};
+const right = {x: 1, y: 0};
+
 var straightLines = [
-    {x: 1, y: 0},
-    {x: -1, y: 0},
-    {x: 0, y: 1},
-    {x: 0, y: -1}
+    forward,
+    backward,
+    left,
+    right
 ];
 
 var diagonals =  [
-    {x: 1, y: 1},
-    {x: 1, y: -1},
-    {x: -1, y: 1},
-    {x: -1, y: -1}
+    moveConstructor([forward, left]),
+    moveConstructor([forward, right]),
+    moveConstructor([backward, left]),
+    moveConstructor([backward, right])
 ];
 
 var allDirections = [...straightLines, ...diagonals];
 
 var knightHop = [
-    {x: 2, y: 1},
-    {x: 2, y: -1},
-    {x: 1, y: 2},
-    {x: 1, y: -2},
-    {x: -1, y: 2},
-    {x: -1, y: -2},
-    {x: -2, y: 1},
-    {x: -2, y: -1}
+    moveConstructor([forward, forward, left]),
+    moveConstructor([forward, forward, right]),
+    moveConstructor([forward, left, left]),
+    moveConstructor([forward, right, right]),
+    moveConstructor([backward, backward, left]),
+    moveConstructor([backward, backward, right]),
+    moveConstructor([backward, left, left]),
+    moveConstructor([backward, right, right])
 ];
-
-var forward = [{x: 0, y: 1}];
-
-var pawnAttackLeft = [{x: 1, y: 1}, {x: -1, y: 1}];
