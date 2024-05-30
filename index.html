@@ -19,26 +19,50 @@
             user-select: none;
         }
 
+        #gameStatus {
+            display: inline-block;
+            font-family: arial;
+            color: black;
+            font-size: 18px;
+            user-select: none;
+        }
+
         #board {
             background-image: url("static/chessboard.png");
             background-size: cover;
             display: inline-block;
         }
 
-        .moveDisplay {
+        #board > * {
             position: absolute;
+        }
+
+        .moveDisplay {
             background-color: rgba(20, 61, 85, 0.4);
             cursor: pointer;
             z-index: 2;
         }
 
         .selDisplay {
-            position: absolute;
             background-color: rgba(20, 61, 85, 0.05);
         }
 
+        .promoteDisplay {
+            background-color: rgba(152, 56, 255, 0.4);
+            cursor: pointer;
+            z-index: 3;
+        }
+
+        .promotionOverlay {
+            background-color: rgba(0, 0, 0, 0.4);
+            z-index: 2;
+        }
+
+        .checkDisplay {
+            background-color: rgba(255, 56, 56, 0.4);
+        }
+
         .piece {
-            position: absolute;
             cursor: pointer;
             z-index: 1;
         }
@@ -102,5 +126,6 @@
     <div id="board">
 
     </div>
+    <br><br><div id="gameStatus"></div>
     <script type = "module" src="src/game.js"></script>
 </body> 

@@ -1,5 +1,6 @@
 import {King, Queen, Bishop, Knight, Rook, Pawn} from './pieceDefs.js';
 import {Board} from './board.js'
+import { CheckDisplay } from './onBoardElements.js';
 
 document.body.onload = newGame;
 
@@ -16,40 +17,105 @@ var gameState = {
     pieces: {},
     currentSelection: false,
     currentTurn: 'white',
-    endTurn: endTurn
+    endTurn: endTurn,
+    gameStatusRender: document.getElementById("gameStatus"),
+    checkDisplay: false,
+    promotion: false
 }
 
 //turn logic
 
 function newTurn(gameState) {
-    console.log(gameState)
-    //change turn & disable/enable pieces
-    if (gameState.currentTurn === 'white') {
-        Object.keys(gameState.pieces.black).forEach(key => gameState.pieces.black[key].disable() );
-        Object.keys(gameState.pieces.white).forEach(key => gameState.pieces.white[key].enable());
-    }
-    if (gameState.currentTurn === 'black') {
-        Object.keys(gameState.pieces.white).forEach(key => gameState.pieces.white[key].disable() );
-        Object.keys(gameState.pieces.black).forEach(key => gameState.pieces.black[key].enable());
-    }
+    var opponentColor = gameState.currentTurn === 'white' ? 'black' : 'white';
+    var thisSide = gameState.pieces[gameState.currentTurn];
+
+    //game display on screen
+    gameState.gameStatusRender.innerHTML = `${gameState.currentTurn.charAt(0).toUpperCase() + gameState.currentTurn.slice(1)} to move`;
+
+    //disable opponent pieces
+    Object.keys(gameState.pieces[opponentColor]).forEach(key => gameState.pieces[opponentColor][key].disable());
 
     //getMoves
-    Object.keys(gameState.pieces[gameState.currentTurn]).forEach(key => gameState.pieces[gameState.currentTurn][key].getMoves());
+    gameState.board.squares.forEach(column => column.forEach(square => square.controlledBy[gameState.currentTurn] = []));
+    Object.keys(thisSide).forEach(key => thisSide[key].getMoves());
 
-    //see if in check - if so generate check display and disable all pieces except the king
+    //see if in check
+    var king = thisSide.king;
+    if (gameState.board.squares[king.square.x][king.square.y].controlledBy[opponentColor].length === 1) {
+        let attackingPiece = gameState.board.squares[king.square.x][king.square.y].controlledBy[opponentColor][0];
 
+        //enable the king
+        king.enable();
+
+        //find block squares
+        let attackDirection = attackingPiece.availableMoves.find(move => move.square.x === king.square.x && move.square.y === king.square.y).direction;
+        var blockSquares = [];
+        var iteratorSquare = king.square;
+        while (iteratorSquare.x != attackingPiece.square.x || iteratorSquare.y != attackingPiece.square.y) {
+            iteratorSquare = {x: iteratorSquare.x - attackDirection.x, y: iteratorSquare.y - attackDirection.y};
+            blockSquares.push(iteratorSquare);
+        }
+        
+        //enable pieces that can block and allow only block squares
+        for (let piece in thisSide) {
+            if (thisSide[piece].isKing()) {
+                continue;
+            }
+            let blockMoves = [];
+            for (let square in blockSquares) {
+                for (let move in thisSide[piece].availableMoves) {
+                    if (
+                        thisSide[piece].availableMoves[move].square.x === blockSquares[square].x &&
+                        thisSide[piece].availableMoves[move].square.y === blockSquares[square].y
+                    ) {
+                        blockMoves.push(thisSide[piece].availableMoves[move]);
+                    }
+                }
+            }
+            thisSide[piece].availableMoves = blockMoves;
+            if (thisSide[piece].availableMoves.length > 0) {
+                thisSide[piece].enable();
+            }                
+        }
+
+        //add check display
+        gameState.checkDisplay = new CheckDisplay({square: king.square, gameState: gameState});
+    }
+    else if (gameState.board.squares[king.square.x][king.square.y].controlledBy[opponentColor].length > 1 ) {
+        //multiple checks mean enable only the king
+        king.enable();
+
+        //add check display
+        gameState.checkDisplay = new CheckDisplay({square: king.square, gameState: gameState});
+    }
+    else {
+        //enable all pieces
+        Object.keys(gameState.pieces[gameState.currentTurn]).forEach(key => gameState.pieces[gameState.currentTurn][key].enable());
+    }
 }
 
 function endTurn(gameState) {
+    
+    if (gameState.promotion) {
+        return;
+    }
+
+    //remove check square if necessary 
+    if (gameState.checkDisplay) {
+        gameState.checkDisplay.render.remove();
+        gameState.checkDisplay = false;
+    }
+
     //repopulate controlled squares
     Object.keys(gameState.pieces[gameState.currentTurn]).forEach(key => gameState.pieces[gameState.currentTurn][key].getMoves());
+
+    //toggle currentTurn
     if (gameState.currentTurn === 'white') {
         gameState.currentTurn = 'black';
-        console.log('test1')
     } else if (gameState.currentTurn === 'black') {
         gameState.currentTurn = 'white';
-        console.log('test2')
     }
+
     newTurn(gameState);
 }
 
@@ -76,18 +142,19 @@ function flipBoard(gameState) {
 function createSide(params) {
     var pawns = {};
     for (let i = 0; i < 8; i++) {
-            pawns[`pawn${String.fromCharCode(97 + i)}`] = new Pawn({...params, column: i});
+        let id = `pawn${String.fromCharCode(97 + i)}`;
+        pawns[id] = new Pawn({...params, square: {x: i, y: params.color==='white' ? 1 : 6}, id: id});
     }
 
     return {
-        rooka: new Rook({...params, column: 0}),
-        knightb: new Knight({...params, column: 1}),
-        bishopc: new Bishop({...params, column: 2}),
-        king: new King(params),
-        queen: new Queen(params),
-        bishopf: new Bishop({...params, column: 5}),
-        knightg: new Knight({...params, column: 6}),
-        rookh: new Rook({...params, column: 7}),
+        rooka: new Rook({...params, square: {x: 0, y: params.color==='white' ? 0 : 7}, id: 'rooka'}),
+        knightb: new Knight({...params, square: {x: 1, y: params.color==='white' ? 0 : 7}, id: 'knightb'}),
+        bishopc: new Bishop({...params, square: {x: 2, y: params.color==='white' ? 0 : 7}, id: 'bishopc'}),
+        king: new King({...params, square: {x: 3, y: params.color==='white' ? 0 : 7}, id: 'king'}),
+        queen: new Queen({...params, square: {x: 4, y: params.color==='white' ? 0 : 7},  id: 'queen'}),
+        bishopf: new Bishop({...params, square: {x: 5, y: params.color==='white' ? 0 : 7}, id: 'bishopf'}),
+        knightg: new Knight({...params, square: {x: 6, y: params.color==='white' ? 0 : 7}, id: 'knightg'}),
+        rookh: new Rook({...params, square: {x: 7, y: params.color==='white' ? 0 : 7}, id: 'rookh'}),
         ...pawns
     };
 }

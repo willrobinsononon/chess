@@ -27,7 +27,7 @@ class Square {
     vacant = true;
     occupant = {};
     controlledBy = {
-        white: false,
-        black: false
+        white: [],
+        black: []
     }
 }
