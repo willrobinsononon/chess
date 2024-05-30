@@ -6,6 +6,10 @@ class Piece extends OnBoardElement {
     color;
     availableMoves = [];
     moveDisplays = [];
+    pinned = false;
+    pinDirections = [];
+    isPinning = false;
+    isPinningDirection = {};
 
     constructor(params) {
         super(params);
@@ -62,12 +66,30 @@ class Piece extends OnBoardElement {
 
     move(newSquare) {
 
+        //capture if possible
         if (this.gameState.board.squares[newSquare.x][newSquare.y].vacant === false) {
             if (this.gameState.board.squares[newSquare.x][newSquare.y].occupant.color === this.gameState.currentSelection.color) {
                 return
             }
             else {
                 this.capture(this.gameState.board.squares[newSquare.x][newSquare.y].occupant);
+            }
+        }
+
+        //remove pin if necessary 
+        if (
+            this.isPinning &&
+            (
+                this.isPinningDirection.x !== (newSquare.x - this.square.x )/(newSquare.x - this.square.x) ||
+                this.isPinningDirection !== (newSquare.y - this.square.y)/(newSquare.y - this.square.y)
+            )
+        ) {
+            this.isPinning.pinDirections = this.isPinning.pinDirections.filter(direction => {
+                direction.x === this.isPinningDirection.x &&
+                direction.y === this.isPinningDirection.y
+            })
+            if (this.isPinning.pinDirections.length === 0) {
+                this.isPinning.pinned = false;
             }
         }
 
@@ -106,21 +128,33 @@ class Piece extends OnBoardElement {
 
     getMoves() {
         var board = this.gameState.board;
-
+        var directions = [...this.directions];
         this.availableMoves = [];
-        for (let i in this.directions) {
-            let iteratorSquare = {x: this.square.x + this.directions[i].x, y: this.square.y + this.directions[i].y};
+
+        //check if pin directions is in move directions
+        if (this.pinned) {
+            if (this.pinDirections.length === 1) {
+                directions = [{x: -1 * this.pinDirections.x, y: -1 * this.pinDirections.y}];
+            }
+            else if (this.pinDirections.length > 1) {
+                directions = [];
+                
+            }
+        }
+
+        for (let i in directions) {
+            let iteratorSquare = {x: this.square.x + directions[i].x, y: this.square.y + directions[i].y};
             let count = 0;
             while (
                 (!this.maxMoves() || count < this.maxMoves() ) &&
                 (iteratorSquare.x >= 0 && iteratorSquare.y >= 0 && iteratorSquare.x < board.squares.length && iteratorSquare.y < board.squares[0].length) &&
                 (board.squares[iteratorSquare.x][iteratorSquare.y].vacant === true)
             ) {
-                this.availableMoves.push({square: iteratorSquare, direction: this.directions[i]});
+                this.availableMoves.push({square: iteratorSquare, direction: directions[i]});
                 if (!this.isPawn()) {
                     board.squares[iteratorSquare.x][iteratorSquare.y].controlledBy[this.color].push(this);
                 }
-                iteratorSquare = {x: iteratorSquare.x + this.directions[i].x, y: iteratorSquare.y + this.directions[i].y};
+                iteratorSquare = {x: iteratorSquare.x + directions[i].x, y: iteratorSquare.y + directions[i].y};
                 count += 1;
             }
             if (
@@ -129,8 +163,44 @@ class Piece extends OnBoardElement {
                 (iteratorSquare.x >= 0 && iteratorSquare.y >= 0 && iteratorSquare.x < board.squares.length && iteratorSquare.y < board.squares[0].length) &&
                 (board.squares[iteratorSquare.x][iteratorSquare.y].vacant === false && board.squares[iteratorSquare.x][iteratorSquare.y].occupant.color != this.color)
             ) {
-                this.availableMoves.push({square: iteratorSquare, direction: this.directions[i]});
+                this.availableMoves.push({square: iteratorSquare, direction: directions[i]});
                 board.squares[iteratorSquare.x][iteratorSquare.y].controlledBy[this.color].push(this);
+
+                var firstPiece = board.squares[iteratorSquare.x][iteratorSquare.y].occupant;
+
+                iteratorSquare = {x: iteratorSquare.x + directions[i].x, y: iteratorSquare.y + directions[i].y};
+                count += 1;
+
+                //fix king running away into check along same axis of attack
+                if (
+                    firstPiece.isKing() &&
+                    (!this.maxMoves() || count < this.maxMoves() ) &&
+                    (iteratorSquare.x >= 0 && iteratorSquare.y >= 0 && iteratorSquare.x < board.squares.length && iteratorSquare.y < board.squares[0].length) 
+                ) {
+                    board.squares[iteratorSquare.x][iteratorSquare.y].controlledBy[this.color].push(this);
+                }
+                else {
+                    //check for pins
+                    while (
+                        (!this.maxMoves() || count < this.maxMoves() ) &&
+                        (iteratorSquare.x >= 0 && iteratorSquare.y >= 0 && iteratorSquare.x < board.squares.length && iteratorSquare.y < board.squares[0].length) &&
+                        (board.squares[iteratorSquare.x][iteratorSquare.y].vacant === true)
+                    ) {
+                        iteratorSquare = {x: iteratorSquare.x + directions[i].x, y: iteratorSquare.y + directions[i].y};
+                        count += 1;
+                    }
+                    if (
+                        (!this.maxMoves() || count < this.maxMoves() ) &&
+                        (iteratorSquare.x >= 0 && iteratorSquare.y >= 0 && iteratorSquare.x < board.squares.length && iteratorSquare.y < board.squares[0].length) &&
+                        (board.squares[iteratorSquare.x][iteratorSquare.y].vacant === false) &&
+                        (board.squares[iteratorSquare.x][iteratorSquare.y].occupant.color != this.color && board.squares[iteratorSquare.x][iteratorSquare.y].occupant.isKing())
+                     ) {
+                            firstPiece.pinned = true;
+                            firstPiece.pinDirections.push(directions[i]);
+                            this.isPinning = firstPiece;
+                            this.isPinningDirection = directions[i];
+                        }
+                }
             }
         }
     }
@@ -330,7 +400,6 @@ export class Pawn extends Piece {
         var board = this.gameState.board;
         //add pawn attack squares
         if (
-            this.isPawn() && 
             (this.square.y + (1 * this.direction) >= 0) &&
             (this.square.y + (1 * this.direction) < board.squares[0].length)
         ) {
