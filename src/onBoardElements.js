@@ -28,7 +28,6 @@ export class OnBoardElement {
 export class MoveDisplay extends OnBoardElement {
 
     piece;
-    castle;
 
     constructor(params) {
         super(params);
@@ -40,12 +39,7 @@ export class MoveDisplay extends OnBoardElement {
     }
 
     makeMove(square) {
-        if (this.castle) {
-            this.piece.castle(square, this.castle);
-        }
-        else {
-            this.piece.move(square);
-        }
+        this.piece.move(square);
         this.gameState.endTurn(this.gameState);
     }
 }
@@ -63,41 +57,5 @@ export class CheckDisplay extends OnBoardElement {
     constructor(params) {
         super(params);
         this.render.classList.add("checkDisplay");
-    }
-}
-
-export class PromoteDisplay extends OnBoardElement {
-
-    piece;
-    promoteTo;
-
-    constructor(params) {
-        super(params);
-        this.piece = params.piece;
-        this.promoteTo = params.promoteTo;
-
-        this.render.classList.add("promoteDisplay");
-        this.render.classList.add(this.piece.color);
-        this.render.classList.add(params.promoteClass);
-        
-        this.render.onclick = () => { this.piece.promote(this.promoteTo); };
-    }
-}
-
-export class PromotionOverlay {
-    render = document.createElement("div");
-
-    gameState;
-
-    constructor(gameState) {
-        //store references to external variables
-        
-        this.gameState = gameState;
-
-        //create render paramaters
-        this.render.style.width = this.gameState.board.squareSize * this.gameState.board.boardSize;
-        this.render.style.height = this.gameState.board.squareSize * this.gameState.board.boardSize;
-        this.render.classList.add("promotionOverlay");
-        this.gameState.board.render.appendChild(this.render);
     }
 }

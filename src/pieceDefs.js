@@ -1,4 +1,4 @@
-import {OnBoardElement, MoveDisplay, SelectDisplay, PromoteDisplay, PromotionOverlay} from './onBoardElements.js'
+import {OnBoardElement, MoveDisplay, SelectDisplay} from './onBoardElements.js'
 
 class Piece extends OnBoardElement {
 
@@ -7,9 +7,8 @@ class Piece extends OnBoardElement {
     availableMoves = [];
     moveDisplays = [];
     pinned = false;
-    pinDirections = [];
+    pinDirection = {};
     isPinning = false;
-    isPinningDirection = {};
 
     constructor(params) {
         super(params);
@@ -53,15 +52,16 @@ class Piece extends OnBoardElement {
         this.render.onclick = () => { this.select() };
     }
 
-    displayMoves(availableMoves) {
-        this.moveDisplays.push(new SelectDisplay({gameState: this.gameState, square: this.square}))
-        availableMoves.forEach(move => this.moveDisplays.push(new MoveDisplay({square: move.square, gameState: this.gameState, piece: this, castle: false})));
+    isPawn() {
+        return this instanceof Pawn;
     }
 
-    hideMoves() {
-        this.moveDisplays.forEach(moveDisplay => {
-            moveDisplay.render.remove();
-        })
+    isKing() {
+        return this instanceof King;
+    }
+
+    isRook() {
+        return this instanceof Rook;
     }
 
     move(newSquare) {
@@ -73,23 +73,6 @@ class Piece extends OnBoardElement {
             }
             else {
                 this.capture(this.gameState.board.squares[newSquare.x][newSquare.y].occupant);
-            }
-        }
-
-        //remove pin if necessary 
-        if (
-            this.isPinning &&
-            (
-                this.isPinningDirection.x !== (newSquare.x - this.square.x )/(newSquare.x - this.square.x) ||
-                this.isPinningDirection !== (newSquare.y - this.square.y)/(newSquare.y - this.square.y)
-            )
-        ) {
-            this.isPinning.pinDirections = this.isPinning.pinDirections.filter(direction => {
-                direction.x === this.isPinningDirection.x &&
-                direction.y === this.isPinningDirection.y
-            })
-            if (this.isPinning.pinDirections.length === 0) {
-                this.isPinning.pinned = false;
             }
         }
 
@@ -106,18 +89,6 @@ class Piece extends OnBoardElement {
         this.updatePosition(newSquare);
     }
 
-    isPawn() {
-        return this instanceof Pawn;
-    }
-
-    isKing() {
-        return this instanceof King;
-    }
-
-    isRook() {
-        return this instanceof Rook;
-    }
-
     capture(capturedPiece) {
         //remove render
         capturedPiece.render.remove();
@@ -131,15 +102,19 @@ class Piece extends OnBoardElement {
         var directions = [...this.directions];
         this.availableMoves = [];
 
-        //check if pin directions is in move directions
+        //reset pinned piece
+        if (this.isPinning) {
+            this.isPinning.pinned = false;
+            this.isPinning.pinDirection = {};
+        }
+
+        //check if pinned
         if (this.pinned) {
-            if (this.pinDirections.length === 1) {
-                directions = [{x: -1 * this.pinDirections.x, y: -1 * this.pinDirections.y}];
-            }
-            else if (this.pinDirections.length > 1) {
-                directions = [];
-                
-            }
+            //if piece can move in pin direction allow only those moves
+            directions = this.directions.filter(direction => 
+                (direction.x === this.pinDirection.x && direction.y === this.pinDirection.y) ||
+                (direction.x === -1 * this.pinDirection.x && direction.y === -1 * this.pinDirection.y)
+            )
         }
 
         for (let i in directions) {
@@ -150,20 +125,19 @@ class Piece extends OnBoardElement {
                 (iteratorSquare.x >= 0 && iteratorSquare.y >= 0 && iteratorSquare.x < board.squares.length && iteratorSquare.y < board.squares[0].length) &&
                 (board.squares[iteratorSquare.x][iteratorSquare.y].vacant === true)
             ) {
-                this.availableMoves.push({square: iteratorSquare, direction: directions[i]});
-                if (!this.isPawn()) {
-                    board.squares[iteratorSquare.x][iteratorSquare.y].controlledBy[this.color].push(this);
-                }
+                this.availableMoves.push({square: iteratorSquare, direction: directions[i], display: (params) => new MoveDisplay(params)});
+                board.squares[iteratorSquare.x][iteratorSquare.y].controlledBy[this.color].push(this);
                 iteratorSquare = {x: iteratorSquare.x + directions[i].x, y: iteratorSquare.y + directions[i].y};
                 count += 1;
             }
+
+
             if (
-                (!this.isPawn()) &&
                 (!this.maxMoves() || count < this.maxMoves() ) &&
                 (iteratorSquare.x >= 0 && iteratorSquare.y >= 0 && iteratorSquare.x < board.squares.length && iteratorSquare.y < board.squares[0].length) &&
                 (board.squares[iteratorSquare.x][iteratorSquare.y].vacant === false && board.squares[iteratorSquare.x][iteratorSquare.y].occupant.color != this.color)
             ) {
-                this.availableMoves.push({square: iteratorSquare, direction: directions[i]});
+                this.availableMoves.push({square: iteratorSquare, direction: directions[i], display: (params) => new MoveDisplay(params)});
                 board.squares[iteratorSquare.x][iteratorSquare.y].controlledBy[this.color].push(this);
 
                 var firstPiece = board.squares[iteratorSquare.x][iteratorSquare.y].occupant;
@@ -195,22 +169,32 @@ class Piece extends OnBoardElement {
                         (board.squares[iteratorSquare.x][iteratorSquare.y].vacant === false) &&
                         (board.squares[iteratorSquare.x][iteratorSquare.y].occupant.color != this.color && board.squares[iteratorSquare.x][iteratorSquare.y].occupant.isKing())
                      ) {
+
                             firstPiece.pinned = true;
-                            firstPiece.pinDirections.push(directions[i]);
+                            firstPiece.pinDirection = directions[i];
                             this.isPinning = firstPiece;
-                            this.isPinningDirection = directions[i];
                         }
                 }
             }
         }
     }
+
+    displayMoves(availableMoves) {
+        this.moveDisplays.push(new SelectDisplay({gameState: this.gameState, square: this.square}))
+        availableMoves.forEach(move => this.moveDisplays.push(move.display({square: move.square, gameState: this.gameState, piece: this, castle: false})));
+    }
+
+    hideMoves() {
+        this.moveDisplays.forEach(moveDisplay => {
+            moveDisplay.render.remove();
+        })
+    }
+
 }
 
 export class King extends Piece {
 
     hasMoved = false;
-    castlea = false;
-    castleh = false;
     directions = allDirections;
 
     constructor(params) {
@@ -230,47 +214,46 @@ export class King extends Piece {
         super.move(newSquare);
     }
     
-    castle(square, castle) {
+    castle(square) {
         this.move(square);
-        if (castle === 'a') {
-            this.gameState.pieces[this.color].rooka.move({x: 3, y: this.square.y});
+        if (square.x === 1) {
+            this.gameState.pieces[this.color].rooka.move({x: 2, y: this.square.y});
         }
-        else if (castle === 'h') {
-            this.gameState.pieces[this.color].rookh.move({x: 5, y: this.square.y});
+        else if (square.x === 5) {
+            this.gameState.pieces[this.color].rookh.move({x: 4, y: this.square.y});
         }
     }
 
     getMoves() {
         super.getMoves();
-
         var board = this.gameState.board;
 
         var opponentColor = this.color === 'white' ? 'black' : 'white';
 
         //add castling square
-        if (this.isKing() && this.hasMoved === false) {
+        if (this.hasMoved === false) {
             if (
-                (this.gameState.pieces[this.color].rooka.hasMoved === false) &&
+                ('rooka' in this.gameState.pieces[this.color] && this.gameState.pieces[this.color].rooka.hasMoved === false) &&
                 (
                     board.squares[1][this.square.y].vacant === true &&
+                    board.squares[1][this.square.y].controlledBy[opponentColor].length === 0 &&
                     board.squares[2][this.square.y].vacant === true &&
-                    board.squares[2][this.square.y].controlledBy[opponentColor].length === 0 &&
-                    board.squares[3][this.square.y].vacant === true &&
-                    board.squares[3][this.square.y].controlledBy[opponentColor].length === 0
+                    board.squares[2][this.square.y].controlledBy[opponentColor].length === 0
                 )
             ) {
-                this.castlea = true;
+                this.availableMoves.push({square: {x: 1, y: this.square.y}, gameState: this.gameState, piece: this, display: this.castleSquare})
             }
             if (
-                (this.gameState.pieces[this.color].rookh.hasMoved === false) &&
+                ('rookh' in this.gameState.pieces[this.color] && this.gameState.pieces[this.color].rookh.hasMoved === false) &&
                 (
                     board.squares[6][this.square.y].vacant === true &&
-                    board.squares[6][this.square.y].controlledBy[opponentColor].length === 0 &&
                     board.squares[5][this.square.y].vacant === true &&
-                    board.squares[5][this.square.y].controlledBy[opponentColor].length === 0
+                    board.squares[5][this.square.y].controlledBy[opponentColor].length === 0 &&
+                    board.squares[4][this.square.y].vacant === true &&
+                    board.squares[4][this.square.y].controlledBy[opponentColor].length === 0
                 )
             ) {
-                this.castleh = true;
+                this.availableMoves.push({square: {x: 5, y: this.square.y}, gameState: this.gameState, piece: this, display: this.castleSquare})
             }
         }
 
@@ -284,15 +267,20 @@ export class King extends Piece {
         });
     }
 
-    displayMoves(availableMoves) {
-        super.displayMoves(availableMoves);
+    castleSquare(params) {
+        class CastleDisplay extends MoveDisplay {
 
-        if (this.castlea === true) {
-            this.moveDisplays.push(new MoveDisplay({square: {x: 2, y: this.square.y}, gameState: this.gameState, piece: this, castle: 'a'}));
+            constructor(params) {
+                super(params);
+            }
+        
+            makeMove(square) {
+                this.piece.castle(square);
+                this.gameState.endTurn(this.gameState);
+            }
         }
-        else if (this.castleh === true) {
-            this.moveDisplays.push(new MoveDisplay({square: {x: 6, y: this.square.y}, gameState: this.gameState, piece: this, castle: 'h'}));
-        }
+
+        return new CastleDisplay(params);
     }
 }
 
@@ -370,34 +358,37 @@ export class Pawn extends Piece {
 
     direction;
     directions;
+    hasMoved = false;
+    enPassant = false;
 
     
     constructor(params) {
         super(params);
         this.render.classList.add("pawn");
         if (this.color === 'white') {
-            this.directions = [{x: 0, y: 1}];
             this.direction = 1;
         }
         else if (this.color === 'black') {
-            this.directions = [{x: 0, y: -1}];
             this.direction = -1;
         }
     }
 
-    maxMoves() {
-        if ((this.color === 'white' && this.square.y === 1) || (this.color === 'black' && this.square.y === 6)) {
-                return 2;
-            }
-            else {
-                return 1;
-            }
-    }
-
     getMoves() {
-        super.getMoves();
-
         var board = this.gameState.board;
+        this.availableMoves = [];
+
+        //add pawn forward squares
+        if (board.squares[this.square.x][this.square.y + this.direction].vacant === true) {
+            this.availableMoves.push({square: {x: this.square.x, y: this.square.y + this.direction}, direction: {x: 0, y: this.direction}, display: (params) => new MoveDisplay(params)})
+            //add double move for first move
+            if (
+                this.hasMoved === false &&
+                board.squares[this.square.x][this.square.y + 2 * this.direction].vacant === true
+            ) {
+                this.availableMoves.push({square: {x: this.square.x, y: this.square.y + 2 * this.direction}, direction: {x: 0, y: this.direction}, display: (params) => new MoveDisplay(params)});               
+            }
+        }
+        
         //add pawn attack squares
         if (
             (this.square.y + (1 * this.direction) >= 0) &&
@@ -408,7 +399,7 @@ export class Pawn extends Piece {
                 board.squares[this.square.x + 1][this.square.y + (1 * this.direction)].vacant === false &&
                 board.squares[this.square.x + 1][this.square.y + (1 * this.direction)].occupant.color != this.color
             ) {
-                this.availableMoves.push({square: {x: this.square.x + 1, y: this.square.y + (1 * this.direction)}, direction: {x: 1, y: 1}});
+                this.availableMoves.push({square: {x: this.square.x + 1, y: this.square.y + (1 * this.direction)}, direction: {x: 1, y: 1}, display: (params) => new MoveDisplay(params)});
                 board.squares[this.square.x + 1][this.square.y + (1 * this.direction)].controlledBy[this.color].push(this);
             }
             if (
@@ -416,20 +407,64 @@ export class Pawn extends Piece {
                 board.squares[this.square.x - 1][this.square.y + (1 * this.direction)].vacant === false &&
                 board.squares[this.square.x - 1][this.square.y + (1 * this.direction)].occupant.color != this.color
             ) {
-                this.availableMoves.push({square: {x: this.square.x - 1, y: this.square.y + (1 * this.direction)}, direction: {x: -1, y: 1}});
+                this.availableMoves.push({square: {x: this.square.x - 1, y: this.square.y + (1 * this.direction)}, direction: {x: -1, y: 1}, display: (params) => new MoveDisplay(params)});
                 board.squares[this.square.x - 1][this.square.y + (1 * this.direction)].controlledBy[this.color].push(this);
             }
+        }
+        
+        //add en passant attack
+        if (this.enPassant) {
+            this.availableMoves.push({square: {x: this.enPassant.square.x, y: this.square.y + this.direction}, direction: {x: this.square.x - this.enPassant.x, y: this.direction}, display: this.enPassantDisplay});
+        }
+
+        if (this.pinned) {
+            this.availableMoves = this.availableMoves.filter(move => 
+                (this.pinDirection.x === move.direction.x && this.pinDirection.y === move.direction.y) || 
+                (this.pinDirection.x === -1 * move.direction.x && this.pinDirection.y === -1 * move.direction.y)
+            )
         }
     }
 
     move(newSquare) {
+
+        var board = this.gameState.board;
+        
+        //trigger en passant if moving two squares
+        if (this.direction * (newSquare.y - this.square.y) === 2) {
+            if (
+                this.square.x + 1 < board.squares.length &&
+                board.squares[this.square.x + 1][this.square.y + 2 * this.direction].vacant === false &&
+                board.squares[this.square.x + 1][this.square.y + 2 * this.direction].occupant.isPawn() &&
+                board.squares[this.square.x + 1][this.square.y + 2 * this.direction].occupant.color != this.color
+            ) {
+                board.squares[this.square.x + 1][this.square.y + 2 * this.direction].occupant.enPassant = this;
+            }
+            if (
+                this.square.x - 1 >= 0 &&
+                board.squares[this.square.x - 1][this.square.y + 2 * this.direction].vacant === false &&
+                board.squares[this.square.x - 1][this.square.y + 2 * this.direction].occupant.isPawn() &&
+                board.squares[this.square.x + 1][this.square.y + 2 * this.direction].occupant.color != this.color
+            ) {
+                board.squares[this.square.x - 1][this.square.y + 2 * this.direction].occupant.enPassant = this;
+            }
+        }
+
         super.move(newSquare);
+
         if (this.square.y === 3.5 + this.direction * 3.5) {
-            this.promoteDisplay();
+            this.promotionDisplay();
+        }
+
+        if (this.hasMoved === false) {
+            this.hasMoved = true;
+        }
+
+        if (this.enPassant === true) {
+            this.enPassant = false;
         }
     }
 
-    promoteDisplay() {
+    promotionDisplay() {
         //set game to promotion mode
         this.gameState.promotion = true;
 
@@ -440,13 +475,13 @@ export class Pawn extends Piece {
         this.render.remove();
 
         //create promotedisplays
-        this.moveDisplays.push(new PromoteDisplay({piece: this, promoteTo: Queen, promoteClass: "queen", square: this.square, gameState: this.gameState}));
-        this.moveDisplays.push(new PromoteDisplay({piece: this, promoteTo: Rook, promoteClass: "rook", square: {x: this.square.x, y: this.square.y - this.direction}, gameState: this.gameState}));
-        this.moveDisplays.push(new PromoteDisplay({piece: this, promoteTo: Bishop, promoteClass: "bishop", square: {x: this.square.x, y: this.square.y - 2 * this.direction}, gameState: this.gameState}));
-        this.moveDisplays.push(new PromoteDisplay({piece: this, promoteTo: Knight, promoteClass: "knight", square: {x: this.square.x, y: this.square.y - 3 * this.direction}, gameState: this.gameState}));
+        this.moveDisplays.push(this.promoteDisplay({piece: this, promoteTo: Queen, promoteClass: "queen", square: this.square, gameState: this.gameState}));
+        this.moveDisplays.push(this.promoteDisplay({piece: this, promoteTo: Rook, promoteClass: "rook", square: {x: this.square.x, y: this.square.y - this.direction}, gameState: this.gameState}));
+        this.moveDisplays.push(this.promoteDisplay({piece: this, promoteTo: Bishop, promoteClass: "bishop", square: {x: this.square.x, y: this.square.y - 2 * this.direction}, gameState: this.gameState}));
+        this.moveDisplays.push(this.promoteDisplay({piece: this, promoteTo: Knight, promoteClass: "knight", square: {x: this.square.x, y: this.square.y - 3 * this.direction}, gameState: this.gameState}));
 
         //create board overlay
-        this.moveDisplays.push(new PromotionOverlay(this.gameState));
+        this.moveDisplays.push(this.promoteOverlay(this.gameState));
     }
 
     promote(Piece) {
@@ -455,6 +490,67 @@ export class Pawn extends Piece {
         this.gameState.pieces[this.color][this.id] = new Piece({color: this.color, gameState: this.gameState, square: this.square, id: this.id});
         this.gameState.promotion = false;
         this.gameState.endTurn(this.gameState);
+    }
+
+    enPassantDisplay(params)  {
+        class EnPassantDisplay extends MoveDisplay {
+
+            constructor(params) {
+                super(params);
+                this.enPassant = this.piece.enPassant;
+            }
+
+            makeMove(square) {
+                this.piece.capture(this.enPassant);
+                this.piece.move(square);
+                this.gameState.endTurn(this.gameState);
+            }
+        }
+
+        return new EnPassantDisplay(params);
+    }
+
+    promoteDisplay(params) {
+        class PromoteDisplay extends OnBoardElement {
+            piece;
+            promoteTo;
+        
+            constructor(params) {
+                super(params);
+                this.piece = params.piece;
+                this.promoteTo = params.promoteTo;
+        
+                this.render.classList.add("promoteDisplay");
+                this.render.classList.add(this.piece.color);
+                this.render.classList.add(params.promoteClass);
+                
+                this.render.onclick = () => { this.piece.promote(this.promoteTo); };
+            }
+        }
+
+        return new PromoteDisplay(params);
+    }
+
+    promoteOverlay(params) {
+        class PromoteOverlay {
+            render = document.createElement("div");
+        
+            gameState;
+        
+            constructor(gameState) {
+                //store references to external variables
+                
+                this.gameState = gameState;
+        
+                //create render paramaters
+                this.render.style.width = this.gameState.board.squareSize * this.gameState.board.boardSize;
+                this.render.style.height = this.gameState.board.squareSize * this.gameState.board.boardSize;
+                this.render.classList.add("promotionOverlay");
+                this.gameState.board.render.appendChild(this.render);
+            }
+        }
+
+        return new PromoteOverlay(params);
     }
 }
 
