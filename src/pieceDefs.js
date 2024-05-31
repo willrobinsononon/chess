@@ -121,7 +121,7 @@ class Piece extends OnBoardElement {
             let iteratorSquare = {x: this.square.x + directions[i].x, y: this.square.y + directions[i].y};
             let count = 0;
             while (
-                (!this.maxMoves() || count < this.maxMoves() ) &&
+                (!this.maxMoves || count < this.maxMoves ) &&
                 (iteratorSquare.x >= 0 && iteratorSquare.y >= 0 && iteratorSquare.x < board.squares.length && iteratorSquare.y < board.squares[0].length) &&
                 (board.squares[iteratorSquare.x][iteratorSquare.y].vacant === true)
             ) {
@@ -133,7 +133,7 @@ class Piece extends OnBoardElement {
 
 
             if (
-                (!this.maxMoves() || count < this.maxMoves() ) &&
+                (!this.maxMoves || count < this.maxMoves ) &&
                 (iteratorSquare.x >= 0 && iteratorSquare.y >= 0 && iteratorSquare.x < board.squares.length && iteratorSquare.y < board.squares[0].length) &&
                 (board.squares[iteratorSquare.x][iteratorSquare.y].vacant === false && board.squares[iteratorSquare.x][iteratorSquare.y].occupant.color != this.color)
             ) {
@@ -148,7 +148,7 @@ class Piece extends OnBoardElement {
                 //fix king running away into check along same axis of attack
                 if (
                     firstPiece.isKing() &&
-                    (!this.maxMoves() || count < this.maxMoves() ) &&
+                    (!this.maxMoves || count < this.maxMoves ) &&
                     (iteratorSquare.x >= 0 && iteratorSquare.y >= 0 && iteratorSquare.x < board.squares.length && iteratorSquare.y < board.squares[0].length) 
                 ) {
                     board.squares[iteratorSquare.x][iteratorSquare.y].controlledBy[this.color].push(this);
@@ -156,7 +156,7 @@ class Piece extends OnBoardElement {
                 else {
                     //check for pins
                     while (
-                        (!this.maxMoves() || count < this.maxMoves() ) &&
+                        (!this.maxMoves || count < this.maxMoves ) &&
                         (iteratorSquare.x >= 0 && iteratorSquare.y >= 0 && iteratorSquare.x < board.squares.length && iteratorSquare.y < board.squares[0].length) &&
                         (board.squares[iteratorSquare.x][iteratorSquare.y].vacant === true)
                     ) {
@@ -164,7 +164,7 @@ class Piece extends OnBoardElement {
                         count += 1;
                     }
                     if (
-                        (!this.maxMoves() || count < this.maxMoves() ) &&
+                        (!this.maxMoves || count < this.maxMoves ) &&
                         (iteratorSquare.x >= 0 && iteratorSquare.y >= 0 && iteratorSquare.x < board.squares.length && iteratorSquare.y < board.squares[0].length) &&
                         (board.squares[iteratorSquare.x][iteratorSquare.y].vacant === false) &&
                         (board.squares[iteratorSquare.x][iteratorSquare.y].occupant.color != this.color && board.squares[iteratorSquare.x][iteratorSquare.y].occupant.isKing())
@@ -181,7 +181,7 @@ class Piece extends OnBoardElement {
 
     displayMoves(availableMoves) {
         this.moveDisplays.push(new SelectDisplay({gameState: this.gameState, square: this.square}))
-        availableMoves.forEach(move => this.moveDisplays.push(move.display({square: move.square, gameState: this.gameState, piece: this, castle: false})));
+        availableMoves.forEach(move => this.moveDisplays.push(move.display({square: move.square, gameState: this.gameState, piece: this})));
     }
 
     hideMoves() {
@@ -196,14 +196,11 @@ export class King extends Piece {
 
     hasMoved = false;
     directions = allDirections;
+    maxMoves = 1;
 
     constructor(params) {
         super(params);
         this.render.classList.add("king");
-    }
-
-    maxMoves() {
-        return 1;
     }
 
     move(newSquare) {
@@ -287,32 +284,24 @@ export class King extends Piece {
 export class Queen extends Piece {
 
     directions = allDirections;
+    maxMoves = false;
 
     constructor(params) {
         super(params);
         this.render.classList.add("queen");
     }
-
-    maxMoves() {
-        return false;
-    }
-
-
 }
 
 export class Rook extends Piece {
     
     hasMoved = false;
+    maxMoves = false;
 
     directions = straightLines;
 
     constructor(params) {
         super(params);
         this.render.classList.add("rook");
-    }
-
-    maxMoves() {
-        return false;
     }
 
     move(newSquare) {
@@ -327,30 +316,22 @@ export class Rook extends Piece {
 export class Knight extends Piece {
 
     directions = knightHop;
+    maxMoves = 1;
 
     constructor(params) {
         super(params);
         this.render.classList.add("knight");
     }
-
-    maxMoves() {
-        return 1;
-    }
-
-
 }
 
 export class Bishop extends Piece {
 
     directions = diagonals;
+    maxMoves = false;
 
     constructor(params) {
         super(params);
         this.render.classList.add("bishop");
-    }
-
-    maxMoves() {
-        return false;
     }
 }
 
