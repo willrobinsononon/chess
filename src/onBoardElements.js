@@ -13,14 +13,15 @@ export class OnBoardElement {
         //create render paramaters
         this.render.style.width = this.gameState.board.squareSize;
         this.render.style.height = this.gameState.board.squareSize;
-        this.updatePosition(this.square);
+        this.updateDisplay(this.square);
         this.gameState.board.render.appendChild(this.render);
     }
 
-    updatePosition(newSquare) {
+    updateDisplay(newSquare) {
         this.render.style.transform = `translate(${(3.5 - this.gameState.board.orientation * (3.5 - newSquare.x)) * this.gameState.board.squareSize}px, ${(3.5 + this.gameState.board.orientation * (3.5 - newSquare.y)) * this.gameState.board.squareSize}px)`
+        this.render.style.width = this.gameState.board.squareSize;
+        this.render.style.height = this.gameState.board.squareSize;
     }
-
 }
 
 //Move Displays

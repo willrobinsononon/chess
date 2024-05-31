@@ -1,131 +1,14 @@
 <head>
     <title>Chess</title>
-    <style>
-        body {
-            text-align: center;
-        }
-
-        #flipButton {
-            font-family: arial;
-            color: white;
-            font-size: 18px;
-            border-radius: 20px;
-            background-color:rgb(37, 153, 255);
-            width: 100px;
-            display: inline-block;
-            padding: 10px 20px;
-            cursor: pointer;
-            box-shadow: lightgrey 0px 1px;
-            user-select: none;
-        }
-
-        #gameStatus {
-            display: inline-block;
-            font-family: arial;
-            color: black;
-            font-size: 18px;
-            user-select: none;
-        }
-
-        #board {
-            background-image: url("static/chessboard.png");
-            background-size: cover;
-            display: inline-block;
-        }
-
-        #board > * {
-            position: absolute;
-        }
-
-        .moveDisplay {
-            background-color: rgba(20, 61, 85, 0.4);
-            cursor: pointer;
-            z-index: 2;
-        }
-
-        .selDisplay {
-            background-color: rgba(20, 61, 85, 0.05);
-        }
-
-        .promoteDisplay {
-            background-color: rgba(152, 56, 255, 0.4);
-            cursor: pointer;
-            z-index: 3;
-        }
-
-        .promotionOverlay {
-            background-color: rgba(0, 0, 0, 0.4);
-            z-index: 2;
-        }
-
-        .checkDisplay {
-            background-color: rgba(255, 56, 56, 0.4);
-        }
-
-        .piece {
-            cursor: pointer;
-            z-index: 1;
-        }
-
-        .piece.disabled {
-            cursor: default;
-        }
-
-        .black.king {
-            background-image: url("static/pieces/black/king.png");
-        }
-
-        .black.queen {
-            background-image: url("static/pieces/black/queen.png");
-        }
-
-        .black.bishop {
-            background-image: url("static/pieces/black/bishop.png");
-        }
-
-        .black.knight {
-            background-image: url("static/pieces/black/knight.png");
-        }
-
-        .black.rook {
-            background-image: url("static/pieces/black/rook.png");
-        }
-
-        .black.pawn {
-            background-image: url("static/pieces/black/pawn.png");
-        }
-
-        .white.king {
-            background-image: url("static/pieces/white/king.png");
-        }
-
-        .white.queen {
-            background-image: url("static/pieces/white/queen.png");
-        }
-
-        .white.bishop {
-            background-image: url("static/pieces/white/bishop.png");
-        }
-
-        .white.knight {
-            background-image: url("static/pieces/white/knight.png");
-        }
-
-        .white.rook {
-            background-image: url("static/pieces/white/rook.png");
-        }
-
-        .white.pawn {
-            background-image: url("static/pieces/white/pawn.png");
-        }
-
-    </style>
+    <link href="static/chess.css" rel="stylesheet">
 </head>
 <body>
-    <br><div id="flipButton">Flip Board</div><br><br>
-    <div id="board">
-
+    <div id="chessContainer">
+        <div id="board"></div>
+        <div id="controls">
+            <div id="gameStatus"></div>
+            <div id="flipButton">Flip Board</div>
+        </div>
     </div>
-    <br><br><div id="gameStatus"></div>
     <script type = "module" src="src/game.js"></script>
 </body> 

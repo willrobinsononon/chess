@@ -52,6 +52,17 @@ class Piece extends OnBoardElement {
         this.render.onclick = () => { this.select() };
     }
 
+    displayMoves(availableMoves) {
+        this.moveDisplays.push(new SelectDisplay({gameState: this.gameState, square: this.square}))
+        availableMoves.forEach(move => this.moveDisplays.push(move.display({square: move.square, gameState: this.gameState, piece: this})));
+    }
+
+    hideMoves() {
+        this.moveDisplays.forEach(moveDisplay => {
+            moveDisplay.render.remove();
+        })
+    }
+
     isPawn() {
         return this instanceof Pawn;
     }
@@ -86,7 +97,7 @@ class Piece extends OnBoardElement {
         this.gameState.board.squares[this.square.x][this.square.y].vacant = false;
         this.gameState.board.squares[this.square.x][this.square.y].occupant = this;
         
-        this.updatePosition(newSquare);
+        this.updateDisplay(newSquare);
     }
 
     capture(capturedPiece) {
@@ -117,21 +128,25 @@ class Piece extends OnBoardElement {
             )
         }
 
+        //iterate through move directions
         for (let i in directions) {
             let iteratorSquare = {x: this.square.x + directions[i].x, y: this.square.y + directions[i].y};
             let count = 0;
+            
+            //add all empty squares in move direction
             while (
                 (!this.maxMoves || count < this.maxMoves ) &&
                 (iteratorSquare.x >= 0 && iteratorSquare.y >= 0 && iteratorSquare.x < board.squares.length && iteratorSquare.y < board.squares[0].length) &&
                 (board.squares[iteratorSquare.x][iteratorSquare.y].vacant === true)
             ) {
+                //add to piece available moves and board controlledby
                 this.availableMoves.push({square: iteratorSquare, direction: directions[i], display: (params) => new MoveDisplay(params)});
                 board.squares[iteratorSquare.x][iteratorSquare.y].controlledBy[this.color].push(this);
                 iteratorSquare = {x: iteratorSquare.x + directions[i].x, y: iteratorSquare.y + directions[i].y};
                 count += 1;
             }
 
-
+            //if square contains opponent add a move to capture
             if (
                 (!this.maxMoves || count < this.maxMoves ) &&
                 (iteratorSquare.x >= 0 && iteratorSquare.y >= 0 && iteratorSquare.x < board.squares.length && iteratorSquare.y < board.squares[0].length) &&
@@ -140,6 +155,7 @@ class Piece extends OnBoardElement {
                 this.availableMoves.push({square: iteratorSquare, direction: directions[i], display: (params) => new MoveDisplay(params)});
                 board.squares[iteratorSquare.x][iteratorSquare.y].controlledBy[this.color].push(this);
 
+                //store first piece met to later check for pins
                 var firstPiece = board.squares[iteratorSquare.x][iteratorSquare.y].occupant;
 
                 iteratorSquare = {x: iteratorSquare.x + directions[i].x, y: iteratorSquare.y + directions[i].y};
@@ -155,6 +171,8 @@ class Piece extends OnBoardElement {
                 }
                 else {
                     //check for pins
+
+                    //remove all empty spaces behind the first piece
                     while (
                         (!this.maxMoves || count < this.maxMoves ) &&
                         (iteratorSquare.x >= 0 && iteratorSquare.y >= 0 && iteratorSquare.x < board.squares.length && iteratorSquare.y < board.squares[0].length) &&
@@ -163,13 +181,15 @@ class Piece extends OnBoardElement {
                         iteratorSquare = {x: iteratorSquare.x + directions[i].x, y: iteratorSquare.y + directions[i].y};
                         count += 1;
                     }
+
+                    //check if next piece met is the king
                     if (
                         (!this.maxMoves || count < this.maxMoves ) &&
                         (iteratorSquare.x >= 0 && iteratorSquare.y >= 0 && iteratorSquare.x < board.squares.length && iteratorSquare.y < board.squares[0].length) &&
                         (board.squares[iteratorSquare.x][iteratorSquare.y].vacant === false) &&
                         (board.squares[iteratorSquare.x][iteratorSquare.y].occupant.color != this.color && board.squares[iteratorSquare.x][iteratorSquare.y].occupant.isKing())
                      ) {
-
+                            //add pin conditions to respective pieces
                             firstPiece.pinned = true;
                             firstPiece.pinDirection = directions[i];
                             this.isPinning = firstPiece;
@@ -178,18 +198,6 @@ class Piece extends OnBoardElement {
             }
         }
     }
-
-    displayMoves(availableMoves) {
-        this.moveDisplays.push(new SelectDisplay({gameState: this.gameState, square: this.square}))
-        availableMoves.forEach(move => this.moveDisplays.push(move.display({square: move.square, gameState: this.gameState, piece: this})));
-    }
-
-    hideMoves() {
-        this.moveDisplays.forEach(moveDisplay => {
-            moveDisplay.render.remove();
-        })
-    }
-
 }
 
 export class King extends Piece {
@@ -254,6 +262,7 @@ export class King extends Piece {
             }
         }
 
+        //remove moves to squares controlled by opposing pieces
         this.availableMoves.forEach(move => {
             if (
                 board.squares[move.square.x][move.square.y].vacant === true &&
@@ -338,7 +347,6 @@ export class Bishop extends Piece {
 export class Pawn extends Piece {
 
     direction;
-    directions;
     hasMoved = false;
     enPassant = false;
 
@@ -346,6 +354,7 @@ export class Pawn extends Piece {
     constructor(params) {
         super(params);
         this.render.classList.add("pawn");
+
         if (this.color === 'white') {
             this.direction = 1;
         }
@@ -361,7 +370,7 @@ export class Pawn extends Piece {
         //add pawn forward squares
         if (board.squares[this.square.x][this.square.y + this.direction].vacant === true) {
             this.availableMoves.push({square: {x: this.square.x, y: this.square.y + this.direction}, direction: {x: 0, y: this.direction}, display: (params) => new MoveDisplay(params)})
-            //add double move for first move
+            //add double move if first move
             if (
                 this.hasMoved === false &&
                 board.squares[this.square.x][this.square.y + 2 * this.direction].vacant === true
@@ -398,6 +407,7 @@ export class Pawn extends Piece {
             this.availableMoves.push({square: {x: this.enPassant.square.x, y: this.square.y + this.direction}, direction: {x: this.square.x - this.enPassant.x, y: this.direction}, display: this.enPassantDisplay});
         }
 
+        //restrict movement if pinned
         if (this.pinned) {
             this.availableMoves = this.availableMoves.filter(move => 
                 (this.pinDirection.x === move.direction.x && this.pinDirection.y === move.direction.y) || 
@@ -432,6 +442,7 @@ export class Pawn extends Piece {
 
         super.move(newSquare);
 
+        //promote if reaches last rank
         if (this.square.y === 3.5 + this.direction * 3.5) {
             this.promotionDisplay();
         }
@@ -446,6 +457,10 @@ export class Pawn extends Piece {
     }
 
     promotionDisplay() {
+
+        //select so game layer can access moveDisplays
+        this.select();
+
         //set game to promotion mode
         this.gameState.promotion = true;
 
@@ -513,22 +528,21 @@ export class Pawn extends Piece {
     }
 
     promoteOverlay(params) {
-        class PromoteOverlay {
-            render = document.createElement("div");
-        
-            gameState;
-        
-            constructor(gameState) {
-                //store references to external variables
-                
-                this.gameState = gameState;
+        class PromoteOverlay extends OnBoardElement {
+
+            constructor(params) {
+                super({...params, square: {x: 0, y: 7}})
         
                 //create render paramaters
                 this.render.style.width = this.gameState.board.squareSize * this.gameState.board.boardSize;
                 this.render.style.height = this.gameState.board.squareSize * this.gameState.board.boardSize;
                 this.render.classList.add("promotionOverlay");
-                this.gameState.board.render.appendChild(this.render);
             }
+
+            updateDisplay(newSquare) {
+                this.render.style.width = this.gameState.board.squareSize * this.gameState.board.boardSize;
+                this.render.style.height = this.gameState.board.squareSize * this.gameState.board.boardSize;
+            }  
         }
 
         return new PromoteOverlay(params);

@@ -2,14 +2,8 @@ import {King, Queen, Bishop, Knight, Rook, Pawn} from './pieceDefs.js';
 import {Board} from './board.js'
 import { CheckDisplay } from './onBoardElements.js';
 
-document.body.onload = newGame;
-
-//flip button
-const flipButton = document.getElementById("flipButton");
-flipButton.onclick = () => flipBoard(gameState);
-
 //state variables
-const squareSize = 68;
+var squareSize = 68;
 const boardSize = 8;
 
 var gameState = {
@@ -23,8 +17,32 @@ var gameState = {
     promotion: false
 }
 
-//turn logic
+//starting function
+document.body.onload = newGame;
 
+//resize function
+window.onresize = () => {
+    let vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
+    let vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
+}
+
+//flip button
+const flipButton = document.getElementById("flipButton");
+flipButton.onclick = () => flipBoard(gameState);
+
+// flip button logic
+function flipBoard(gameState) {
+    gameState.board.orientation = gameState.board.orientation * -1;
+    var allElements = getAllPieces(gameState);
+    if (gameState.currentSelection) {
+        allElements = [...allElements, ...gameState.currentSelection.moveDisplays];
+    }
+    allElements.forEach( (element) => {
+        element.updateDisplay(element.square);
+    })
+}
+
+//turn logic
 function newTurn(gameState) {
     var opponentColor = gameState.currentTurn === 'white' ? 'black' : 'white';
     var thisSide = gameState.pieces[gameState.currentTurn];
@@ -126,17 +144,7 @@ function getAllPieces(gameState) {
     return allPieces;
 }
 
-// flip button logic
-function flipBoard(gameState) {
-    gameState.board.orientation = gameState.board.orientation * -1;
-    var allElements = getAllPieces(gameState);
-    if (gameState.currentSelection) {
-        allElements = [...allElements, ...gameState.currentSelection.moveDisplays];
-    }
-    allElements.forEach( (element) => {
-        element.updatePosition(element.square);
-    })
-}
+
 
 //game set up functions
 function createSide(params) {
