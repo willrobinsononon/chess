@@ -3,11 +3,25 @@
     <link href="static/chess.css" rel="stylesheet">
 </head>
 <body>
-    <div id="chessContainer">
+    <div id="chess-container">
         <div id="board"></div>
         <div id="controls">
-            <div id="gameStatus"></div>
-            <div id="flipButton">Flip Board</div>
+            <div id="top-side">
+                <div id="black-display" class = "side-display">
+                    <div id="black-time" class="timer-display"></div>
+                    <div id="black-score" class="score-display"></div>
+                </div>
+            </div>
+            <div class="central-display">
+                <div id="game-status"></div>
+                <div id="flip-button">Flip Board</div>
+            </div>
+            <div id="bottom-side">
+                <div id="white-display" class = "side-display">
+                    <div id="white-time" class="timer-display"></div>
+                    <div id="white-score" class="score-display"></div>
+                </div>
+            </div>
         </div>
     </div>
     <script type = "module" src="src/game.js"></script>

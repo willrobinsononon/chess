@@ -2,60 +2,106 @@ body {
     text-align: center;
 }
 
-#flipButton {
-    font-family: arial;
-    color: white;
-    font-size: 18px;
-    border-radius: 20px;
-    background-color:rgb(37, 153, 255);
-    width: 100px;
-    display: inline-block;
-    padding: 10px 20px;
-    cursor: pointer;
-    box-shadow: lightgrey 0px 1px;
-    user-select: none;
+#chess-container {
+    display: flex;
+    width: 70%;
+    max-width: 850px;
+    margin: auto;
+    margin-top: 50px;
 }
 
-#gameStatus {
-    display: inline-block;
+#controls {
     font-family: arial;
-    color: black;
     font-size: 18px;
-    user-select: none;
+
+    flex-grow: 1;
+    display: flex;
+    justify-content: space-between;
+    flex-direction: column;
+    border-style: solid;
+    border-color: rgb(239, 239, 239);
+    border-width: 2px;
 }
+
+#game-status {
+    font-weight: 700;
+    color: black;
+    user-select: none;
+    border-style: solid;
+    border-collapse:collapse;
+    border-color:rgb(239, 239, 239);
+    border-width: 1px;
+    padding: 10px 0px;
+}
+
+#flip-button {
+    color: white;
+    font-size: 18px;
+    background-color:rgb(37, 153, 255);
+    padding: 10px 0px;
+    width: 100%;
+    cursor: pointer;
+    user-select: none;
+    border-style: solid;
+    border-collapse:collapse;
+    border-color: rgb(239, 239, 239);
+    border-width: 1px;
+}
+
+.individual-displays {
+    display: flex;
+    flex-direction: column;
+}
+
+.side-display {
+    display: flex;
+}
+
+.side-display > {
+    flex-grow: 1;
+}
+
+.timer-display {
+    font-weight: 800;
+    font-size: 40px;
+    padding: 15px;
+}
+
 
 #board {
     background-image: url("chessboard.png");
     background-size: cover;
-    display: inline-block;
+    max-width: 544;
+    max-height: 544;
+    flex-grow: 3;
 }
 
 #board > * {
     position: absolute;
 }
 
-.moveDisplay {
+.move-display {
     background-color: rgba(20, 61, 85, 0.4);
     cursor: pointer;
     z-index: 2;
 }
 
-.selDisplay {
+.sel-display {
     background-color: rgba(20, 61, 85, 0.05);
 }
 
-.promoteDisplay {
+.promote-display {
     background-color: rgba(152, 56, 255, 0.4);
     cursor: pointer;
     z-index: 3;
 }
 
-.promotionOverlay {
+.promotion-overlay {
     background-color: rgba(0, 0, 0, 0.4);
     z-index: 2;
 }
 
-.checkDisplay {
+.check-display {
     background-color: rgba(255, 56, 56, 0.4);
 }
 

@@ -516,7 +516,7 @@ export class Pawn extends Piece {
                 this.piece = params.piece;
                 this.promoteTo = params.promoteTo;
         
-                this.render.classList.add("promoteDisplay");
+                this.render.classList.add("promote-display");
                 this.render.classList.add(this.piece.color);
                 this.render.classList.add(params.promoteClass);
                 
@@ -536,7 +536,7 @@ export class Pawn extends Piece {
                 //create render paramaters
                 this.render.style.width = this.gameState.board.squareSize * this.gameState.board.boardSize;
                 this.render.style.height = this.gameState.board.squareSize * this.gameState.board.boardSize;
-                this.render.classList.add("promotionOverlay");
+                this.render.classList.add("promotion-overlay");
             }
 
             updateDisplay(newSquare) {

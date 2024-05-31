@@ -1,21 +1,21 @@
 export class Board {
-
-    render = document.getElementById("board");
-
+    
+    render;
     squareSize;
     boardSize;
     squares = [];
     orientation = 1;
 
-    constructor(squareSize, boardSize) {
-        this.squareSize = squareSize;
-        this.boardSize = boardSize;
-        this.render.style.width = squareSize * boardSize;
-        this.render.style.height = squareSize * boardSize;
+    constructor(params) {
+        this.render = params.render;
+        this.squareSize = params.squareSize;
+        this.boardSize = params.boardSize;
+        this.render.style.width = params.squareSize * params.boardSize;
+        this.render.style.height = params.squareSize * params.boardSize;
 
-        for (let i = 0; i < boardSize; i++) {
+        for (let i = 0; i < params.boardSize; i++) {
             let column = [];
-            for (let i = 0; i < boardSize; i++) {
+            for (let i = 0; i < params.boardSize; i++) {
                 column.push(new Square);
             }
             this.squares.push(column);

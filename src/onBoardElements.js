@@ -32,7 +32,7 @@ export class MoveDisplay extends OnBoardElement {
 
     constructor(params) {
         super(params);
-        this.render.classList.add("moveDisplay");
+        this.render.classList.add("move-display");
         this.piece = params.piece
         this.castle = params.castle;
 
@@ -49,7 +49,7 @@ export class SelectDisplay extends OnBoardElement {
 
     constructor(params) {
         super(params);
-        this.render.classList.add("selDisplay");
+        this.render.classList.add("sel-display");
     }
 }
 
@@ -57,6 +57,6 @@ export class CheckDisplay extends OnBoardElement {
 
     constructor(params) {
         super(params);
-        this.render.classList.add("checkDisplay");
+        this.render.classList.add("check-display");
     }
 }

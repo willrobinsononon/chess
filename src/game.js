@@ -2,9 +2,13 @@ import {King, Queen, Bishop, Knight, Rook, Pawn} from './pieceDefs.js';
 import {Board} from './board.js'
 import { CheckDisplay } from './onBoardElements.js';
 
-//state variables
+//starting function
+document.body.onload = newGame;
+
+//set state variables
 var squareSize = 68;
 const boardSize = 8;
+const timeLimit = 5 * 60 * 10; //tenth of a second accuracy
 
 var gameState = {
     board: {},
@@ -12,13 +16,24 @@ var gameState = {
     currentSelection: false,
     currentTurn: 'white',
     endTurn: endTurn,
-    gameStatusRender: document.getElementById("gameStatus"),
+    gameStatusRender: document.getElementById("game-status"),
     checkDisplay: false,
-    promotion: false
+    promotion: false,
+    timers: {
+        white: {
+            timeLeft: timeLimit,
+            render: document.getElementById("white-time")
+        },
+        black: {
+            timeLeft: timeLimit,
+            render: document.getElementById("black-time")
+        }
+    },
+    currentTimer: false
 }
-
-//starting function
-document.body.onload = newGame;
+//display timers
+gameState.timers.white.render.innerHTML = timeFormat(gameState.timers.white.timeLeft);
+gameState.timers.black.render.innerHTML = timeFormat(gameState.timers.black.timeLeft);
 
 //resize function
 window.onresize = () => {
@@ -27,7 +42,7 @@ window.onresize = () => {
 }
 
 //flip button
-const flipButton = document.getElementById("flipButton");
+const flipButton = document.getElementById("flip-button");
 flipButton.onclick = () => flipBoard(gameState);
 
 // flip button logic
@@ -40,6 +55,24 @@ function flipBoard(gameState) {
     allElements.forEach( (element) => {
         element.updateDisplay(element.square);
     })
+}
+
+//timer
+function startTimer(gameState) {
+    let timer = gameState.timers[gameState.currentTurn]
+    gameState.currentTimer = setInterval(() => {
+        timer.timeLeft -= 1;
+        timer.render.innerHTML = timeFormat(timer.timeLeft);
+    } , 100);
+}
+
+function stopTimer(gameState) {
+    clearInterval(gameState.currentTimer);
+}
+
+function timeFormat(timeLeft) {
+    let seconds = Math.ceil(timeLeft/10);
+    return `${Math.floor(seconds/60)}:${Math.floor((seconds%60)/10)}${seconds%10}`;
 }
 
 //turn logic
@@ -110,9 +143,12 @@ function newTurn(gameState) {
         //enable all pieces
         Object.keys(gameState.pieces[gameState.currentTurn]).forEach(key => gameState.pieces[gameState.currentTurn][key].enable());
     }
+
+    startTimer(gameState);
 }
 
 function endTurn(gameState) {
+    stopTimer(gameState);
     
     if (gameState.promotion) {
         return;
@@ -133,7 +169,7 @@ function endTurn(gameState) {
     } else if (gameState.currentTurn === 'black') {
         gameState.currentTurn = 'white';
     }
-
+    
     newTurn(gameState);
 }
 
@@ -168,7 +204,7 @@ function createSide(params) {
 }
 
 function newGame() {
-    gameState.board = new Board(squareSize, boardSize);
+    gameState.board = new Board({squareSize: squareSize, boardSize: boardSize, render: document.getElementById("board")});
     gameState.pieces = {
         black: createSide({color: 'black', gameState: gameState}),
         white: createSide({color: 'white', gameState: gameState}),
