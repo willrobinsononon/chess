@@ -10,41 +10,6 @@ var squareSize = 68;
 const boardSize = 8;
 const timeLimit = 5 * 60 * 10; //tenth of a second accuracy
 
-var gameState = {
-    board: {},
-    pieces: {},
-    currentSelection: false,
-    currentTurn: 'white',
-    endTurn: endTurn,
-    gameStatusRender: document.getElementById("game-status"),
-    checkDisplay: false,
-    promotion: false,
-    timers: {
-        white: {
-            timeLeft: timeLimit,
-            render: document.getElementById("white-time")
-        },
-        black: {
-            timeLeft: timeLimit,
-            render: document.getElementById("black-time")
-        }
-    },
-    currentTimer: false
-}
-//display timers
-gameState.timers.white.render.innerHTML = timeFormat(gameState.timers.white.timeLeft);
-gameState.timers.black.render.innerHTML = timeFormat(gameState.timers.black.timeLeft);
-
-//resize function
-window.onresize = () => {
-    let vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
-    let vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
-}
-
-//flip button
-const flipButton = document.getElementById("flip-button");
-flipButton.onclick = () => flipBoard(gameState);
-
 // flip button logic
 function flipBoard(gameState) {
     gameState.board.orientation = gameState.board.orientation * -1;
@@ -63,6 +28,9 @@ function startTimer(gameState) {
     gameState.currentTimer = setInterval(() => {
         timer.timeLeft -= 1;
         timer.render.innerHTML = timeFormat(timer.timeLeft);
+        if (timer.timeLeft === 0) {
+            stopGame(gameState, 'time');
+        }
     } , 100);
 }
 
@@ -79,6 +47,7 @@ function timeFormat(timeLeft) {
 function newTurn(gameState) {
     var opponentColor = gameState.currentTurn === 'white' ? 'black' : 'white';
     var thisSide = gameState.pieces[gameState.currentTurn];
+    var check = false;
 
     //game display on screen
     gameState.gameStatusRender.innerHTML = `${gameState.currentTurn.charAt(0).toUpperCase() + gameState.currentTurn.slice(1)} to move`;
@@ -94,6 +63,7 @@ function newTurn(gameState) {
     var king = thisSide.king;
     if (gameState.board.squares[king.square.x][king.square.y].controlledBy[opponentColor].length === 1) {
         let attackingPiece = gameState.board.squares[king.square.x][king.square.y].controlledBy[opponentColor][0];
+        check = true;
 
         //enable the king
         king.enable();
@@ -106,7 +76,7 @@ function newTurn(gameState) {
             iteratorSquare = {x: iteratorSquare.x - attackDirection.x, y: iteratorSquare.y - attackDirection.y};
             blockSquares.push(iteratorSquare);
         }
-        
+
         //enable pieces that can block and allow only block squares
         for (let piece in thisSide) {
             if (thisSide[piece].isKing()) {
@@ -133,6 +103,8 @@ function newTurn(gameState) {
         gameState.checkDisplay = new CheckDisplay({square: king.square, gameState: gameState});
     }
     else if (gameState.board.squares[king.square.x][king.square.y].controlledBy[opponentColor].length > 1 ) {
+        check = true;
+
         //multiple checks mean enable only the king
         king.enable();
 
@@ -142,6 +114,21 @@ function newTurn(gameState) {
     else {
         //enable all pieces
         Object.keys(gameState.pieces[gameState.currentTurn]).forEach(key => gameState.pieces[gameState.currentTurn][key].enable());
+    }
+
+    //get all player moves
+    let playerMoves = [];
+    Object.keys(gameState.pieces[gameState.currentTurn]).forEach( key => playerMoves.push(...gameState.pieces[gameState.currentTurn][key].availableMoves));
+
+    //check for checkmate/stalemate
+    if (playerMoves.length === 0) {
+        if (check) {
+            stopGame(gameState, 'checkmate');
+        }
+        else {
+            stopGame(gameState, 'stalemate');
+        }
+        return; //skips start timer
     }
 
     startTimer(gameState);
@@ -161,6 +148,7 @@ function endTurn(gameState) {
     }
 
     //repopulate controlled squares
+    gameState.board.squares.forEach(column => column.forEach(square => square.controlledBy[gameState.currentTurn] = []));
     Object.keys(gameState.pieces[gameState.currentTurn]).forEach(key => gameState.pieces[gameState.currentTurn][key].getMoves());
 
     //toggle currentTurn
@@ -204,10 +192,80 @@ function createSide(params) {
 }
 
 function newGame() {
+    document.getElementById("board").innerHTML = '';
+
+    var gameState = {
+        board: {},
+        pieces: {
+            white: {},
+            black: {}
+        },
+        currentSelection: false,
+        currentTurn: 'white',
+        endTurn: endTurn,
+        gameStatusRender: document.getElementById("game-status"),
+        checkDisplay: false,
+        promotion: false,
+        timers: {
+            white: {
+                timeLeft: timeLimit,
+                render: document.getElementById("white-time")
+            },
+            black: {
+                timeLeft: timeLimit,
+                render: document.getElementById("black-time")
+            }
+        },
+        currentTimer: false
+    }
+    
+    //display timers
+    gameState.timers.white.render.innerHTML = timeFormat(gameState.timers.white.timeLeft);
+    gameState.timers.black.render.innerHTML = timeFormat(gameState.timers.black.timeLeft);
+    
+    //resize function
+    window.onresize = () => {
+        let vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
+        let vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
+    }
+    
+    //flip button
+    const flipButton = document.getElementById("flip-button");
+    flipButton.onclick = () => flipBoard(gameState);
+
     gameState.board = new Board({squareSize: squareSize, boardSize: boardSize, render: document.getElementById("board")});
     gameState.pieces = {
         black: createSide({color: 'black', gameState: gameState}),
         white: createSide({color: 'white', gameState: gameState}),
     };
     newTurn(gameState);
+}
+
+function stopGame(gameState, condition) {
+
+    //disable all pieces
+    let allPieces = getAllPieces(gameState);
+    allPieces.forEach(piece => piece.disable());
+
+    //conditions time, checkmate, stalemate
+
+    //change game display
+    if (condition === 'checkmate') {
+        gameState.gameStatusRender.innerHTML = `${gameState.currentTurn === 'white' ? 'Black' : 'White'} wins by checkmate`;
+    }
+    else if (condition === 'stalemate') {
+        gameState.gameStatusRender.innerHTML = 'Game ends in stalemate';
+    }
+    else if (condition === 'time') {
+        gameState.gameStatusRender.innerHTML = `${gameState.currentTurn === 'white' ? 'Black' : 'White'} wins on time`;
+    }
+
+    //add new game button
+    let newGameButton = document.createElement("div");
+    newGameButton.classList.add("central-button");
+    newGameButton.id = "new-game-button";
+    newGameButton.innerHTML = "New Game";
+    gameState.gameStatusRender.parentElement.appendChild(newGameButton);
+    newGameButton.onclick = () => newGame()
+
 }

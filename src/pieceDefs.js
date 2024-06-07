@@ -1,4 +1,4 @@
-import {OnBoardElement, MoveDisplay, SelectDisplay} from './onBoardElements.js'
+import {OnBoardElement, MoveDisplay, MoveDisplayClear, SelectDisplay} from './onBoardElements.js'
 
 class Piece extends OnBoardElement {
 
@@ -150,10 +150,16 @@ class Piece extends OnBoardElement {
             if (
                 (!this.maxMoves || count < this.maxMoves ) &&
                 (iteratorSquare.x >= 0 && iteratorSquare.y >= 0 && iteratorSquare.x < board.squares.length && iteratorSquare.y < board.squares[0].length) &&
-                (board.squares[iteratorSquare.x][iteratorSquare.y].vacant === false && board.squares[iteratorSquare.x][iteratorSquare.y].occupant.color != this.color)
+                (board.squares[iteratorSquare.x][iteratorSquare.y].vacant === false)
             ) {
-                this.availableMoves.push({square: iteratorSquare, direction: directions[i], display: (params) => new MoveDisplay(params)});
+                //piece controls square containing piece
                 board.squares[iteratorSquare.x][iteratorSquare.y].controlledBy[this.color].push(this);
+
+                //if piece is opponent the move is available
+                if (board.squares[iteratorSquare.x][iteratorSquare.y].occupant.color != this.color) {
+                    this.availableMoves.push({square: iteratorSquare, direction: directions[i], display: (params) => new MoveDisplay(params)});
+                }
+                
 
                 //store first piece met to later check for pins
                 var firstPiece = board.squares[iteratorSquare.x][iteratorSquare.y].occupant;
@@ -188,12 +194,12 @@ class Piece extends OnBoardElement {
                         (iteratorSquare.x >= 0 && iteratorSquare.y >= 0 && iteratorSquare.x < board.squares.length && iteratorSquare.y < board.squares[0].length) &&
                         (board.squares[iteratorSquare.x][iteratorSquare.y].vacant === false) &&
                         (board.squares[iteratorSquare.x][iteratorSquare.y].occupant.color != this.color && board.squares[iteratorSquare.x][iteratorSquare.y].occupant.isKing())
-                     ) {
+                    ) {
                             //add pin conditions to respective pieces
                             firstPiece.pinned = true;
                             firstPiece.pinDirection = directions[i];
                             this.isPinning = firstPiece;
-                        }
+                    }
                 }
             }
         }
@@ -235,7 +241,7 @@ export class King extends Piece {
 
         var opponentColor = this.color === 'white' ? 'black' : 'white';
 
-        //add castling square
+        //add castling squares
         if (this.hasMoved === false) {
             if (
                 ('rooka' in this.gameState.pieces[this.color] && this.gameState.pieces[this.color].rooka.hasMoved === false) &&
@@ -246,7 +252,8 @@ export class King extends Piece {
                     board.squares[2][this.square.y].controlledBy[opponentColor].length === 0
                 )
             ) {
-                this.availableMoves.push({square: {x: 1, y: this.square.y}, gameState: this.gameState, piece: this, display: this.castleSquare})
+                this.availableMoves.push({square: {x: 1, y: this.square.y}, gameState: this.gameState, piece: this, display: this.castleSquare});
+                this.availableMoves.push({square: {x: 0, y: this.square.y}, gameState: this.gameState, piece: this, display: this.castleSquareClear});
             }
             if (
                 ('rookh' in this.gameState.pieces[this.color] && this.gameState.pieces[this.color].rookh.hasMoved === false) &&
@@ -258,14 +265,14 @@ export class King extends Piece {
                     board.squares[4][this.square.y].controlledBy[opponentColor].length === 0
                 )
             ) {
-                this.availableMoves.push({square: {x: 5, y: this.square.y}, gameState: this.gameState, piece: this, display: this.castleSquare})
+                this.availableMoves.push({square: {x: 5, y: this.square.y}, gameState: this.gameState, piece: this, display: this.castleSquare});
+                this.availableMoves.push({square: {x: 7, y: this.square.y}, gameState: this.gameState, piece: this, display: this.castleSquareClear});
             }
         }
 
         //remove moves to squares controlled by opposing pieces
         this.availableMoves.forEach(move => {
             if (
-                board.squares[move.square.x][move.square.y].vacant === true &&
                 board.squares[move.square.x][move.square.y].controlledBy[opponentColor].length > 0
             ) {
                 this.availableMoves = this.availableMoves.filter(item => item != move);
@@ -287,6 +294,22 @@ export class King extends Piece {
         }
 
         return new CastleDisplay(params);
+    }
+
+    castleSquareClear(params) {
+        class CastleDisplayClear extends MoveDisplayClear {
+
+            constructor(params) {
+                super(params);
+            }
+        
+            makeMove(square) {
+                this.piece.castle({x: square.x === 0 ? 1 : 5, y: square.y});
+                this.gameState.endTurn(this.gameState);
+            }
+        }
+
+        return new CastleDisplayClear(params);
     }
 }
 
@@ -378,27 +401,29 @@ export class Pawn extends Piece {
                 this.availableMoves.push({square: {x: this.square.x, y: this.square.y + 2 * this.direction}, direction: {x: 0, y: this.direction}, display: (params) => new MoveDisplay(params)});               
             }
         }
-        
+
         //add pawn attack squares
         if (
             (this.square.y + (1 * this.direction) >= 0) &&
             (this.square.y + (1 * this.direction) < board.squares[0].length)
         ) {
-            if (
-                this.square.x + 1 < board.squares.length &&
-                board.squares[this.square.x + 1][this.square.y + (1 * this.direction)].vacant === false &&
-                board.squares[this.square.x + 1][this.square.y + (1 * this.direction)].occupant.color != this.color
-            ) {
-                this.availableMoves.push({square: {x: this.square.x + 1, y: this.square.y + (1 * this.direction)}, direction: {x: 1, y: 1}, display: (params) => new MoveDisplay(params)});
+            if (this.square.x + 1 < board.squares.length) {
                 board.squares[this.square.x + 1][this.square.y + (1 * this.direction)].controlledBy[this.color].push(this);
+                if (
+                    board.squares[this.square.x + 1][this.square.y + (1 * this.direction)].vacant === false &&
+                    board.squares[this.square.x + 1][this.square.y + (1 * this.direction)].occupant.color != this.color
+                ) {
+                    this.availableMoves.push({square: {x: this.square.x + 1, y: this.square.y + (1 * this.direction)}, direction: {x: 1, y: 1}, display: (params) => new MoveDisplay(params)});
+                }
             }
-            if (
-                this.square.x - 1 >= 0 &&
-                board.squares[this.square.x - 1][this.square.y + (1 * this.direction)].vacant === false &&
-                board.squares[this.square.x - 1][this.square.y + (1 * this.direction)].occupant.color != this.color
-            ) {
-                this.availableMoves.push({square: {x: this.square.x - 1, y: this.square.y + (1 * this.direction)}, direction: {x: -1, y: 1}, display: (params) => new MoveDisplay(params)});
+            if (this.square.x - 1 >= 0) {
                 board.squares[this.square.x - 1][this.square.y + (1 * this.direction)].controlledBy[this.color].push(this);
+                if (
+                    board.squares[this.square.x - 1][this.square.y + (1 * this.direction)].vacant === false &&
+                    board.squares[this.square.x - 1][this.square.y + (1 * this.direction)].occupant.color != this.color
+                ) {
+                    this.availableMoves.push({square: {x: this.square.x - 1, y: this.square.y + (1 * this.direction)}, direction: {x: -1, y: 1}, display: (params) => new MoveDisplay(params)});
+                }
             }
         }
         
@@ -434,7 +459,7 @@ export class Pawn extends Piece {
                 this.square.x - 1 >= 0 &&
                 board.squares[this.square.x - 1][this.square.y + 2 * this.direction].vacant === false &&
                 board.squares[this.square.x - 1][this.square.y + 2 * this.direction].occupant.isPawn() &&
-                board.squares[this.square.x + 1][this.square.y + 2 * this.direction].occupant.color != this.color
+                board.squares[this.square.x - 1][this.square.y + 2 * this.direction].occupant.color != this.color
             ) {
                 board.squares[this.square.x - 1][this.square.y + 2 * this.direction].occupant.enPassant = this;
             }

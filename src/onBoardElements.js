@@ -45,6 +45,14 @@ export class MoveDisplay extends OnBoardElement {
     }
 }
 
+export class MoveDisplayClear extends MoveDisplay {
+
+    constructor(params) {
+        super(params);
+        this.render.classList.add("move-display-clear");
+    }
+}
+
 export class SelectDisplay extends OnBoardElement {
 
     constructor(params) {
