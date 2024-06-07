@@ -5,10 +5,7 @@ import { CheckDisplay } from './onBoardElements.js';
 //starting function
 document.body.onload = newGame;
 
-//set state variables
-var squareSize = 68;
-const boardSize = 8;
-const timeLimit = 5 * 60 * 10; //tenth of a second accuracy
+
 
 // flip button logic
 function flipBoard(gameState) {
@@ -195,6 +192,11 @@ function createSide(params) {
 function newGame() {
     document.getElementById("board").innerHTML = '';
 
+    //set state variable
+    const boardSize = 8;
+    const timeLimit = 5 * 60 * 10; //tenth of a second accuracy
+    var squareSize = document.getElementById("board").getBoundingClientRect().width / 8
+
     var gameState = {
         board: {},
         pieces: {
@@ -223,13 +225,7 @@ function newGame() {
     //display timers
     gameState.timers.white.render.innerHTML = timeFormat(gameState.timers.white.timeLeft);
     gameState.timers.black.render.innerHTML = timeFormat(gameState.timers.black.timeLeft);
-    
-    //resize function
-    window.onresize = () => {
-        let vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
-        let vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
-    }
-    
+
     //flip button
     const flipButton = document.getElementById("flip-button");
     flipButton.onclick = () => flipBoard(gameState);
@@ -240,6 +236,18 @@ function newGame() {
         white: createSide({color: 'white', gameState: gameState}),
     };
     newTurn(gameState);
+
+    //resize function
+    window.onresize = () => {
+        let squareResize = gameState.board.render.getBoundingClientRect().width / 8;
+
+        if (gameState.board.squareSize != squareResize) {
+            gameState.board.squareSize = squareResize;
+            gameState.board.updateDisplay();
+            let allPieces = getAllPieces(gameState);
+            allPieces.forEach(piece => piece.updateDisplay(piece.square));
+        }
+    }
 }
 
 function stopGame(gameState, condition) {

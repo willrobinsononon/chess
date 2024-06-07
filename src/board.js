@@ -10,8 +10,7 @@ export class Board {
         this.render = params.render;
         this.squareSize = params.squareSize;
         this.boardSize = params.boardSize;
-        this.render.style.width = params.squareSize * params.boardSize;
-        this.render.style.height = params.squareSize * params.boardSize;
+        this.updateDisplay(params);
 
         for (let i = 0; i < params.boardSize; i++) {
             let column = [];
@@ -21,7 +20,12 @@ export class Board {
             this.squares.push(column);
         }
     }
+
+    updateDisplay() {
+        this.render.style.height = this.squareSize * this.boardSize;
+    }
 }
+
 
 class Square {
     vacant = true;

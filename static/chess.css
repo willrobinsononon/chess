@@ -5,10 +5,17 @@ body {
 #chess-container {
     display: flex;
     width: 70%;
-    max-width: 850px;
+    width: 850px;
     margin: auto;
     margin-top: 50px;
 }
+
+#board {
+    background-image: url("chessboard.png");
+    background-size: cover;
+    width: 64%;
+}
+
 
 #controls {
     font-family: arial;
@@ -74,15 +81,6 @@ body {
     padding: 15px;
 }
 
-
-#board {
-    background-image: url("chessboard.png");
-    background-size: cover;
-    max-width: 544;
-    max-height: 544;
-    flex-grow: 3;
-}
-
 #board > * {
     position: absolute;
 }
@@ -119,6 +117,7 @@ body {
 .piece {
     cursor: pointer;
     z-index: 1;
+    background-size: cover;
 }
 
 .piece.disabled {
@@ -171,4 +170,38 @@ body {
 
 .white.pawn {
     background-image: url("pieces/white/pawn.png");
+}
+
+
+
+
+@media screen and (max-width: 1008px) {
+    #chess-container {
+        width: 550px;
+    }
+    #board {
+        width: 64%;
+    }
+}
+
+@media screen and (max-width: 640px) {
+    #chess-container {
+        width: 380px;
+        flex-direction:column;
+    }
+
+    #board {
+        width: 100%;
+    }
+
+    .timer-display {
+        font-size: 24px;
+        padding: 6px
+    }
+}
+
+@media screen and (max-width: 400px) {
+    #chess-container {
+        width: 100%;
+    }
 }
