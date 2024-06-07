@@ -29,6 +29,7 @@ function startTimer(gameState) {
         timer.timeLeft -= 1;
         timer.render.innerHTML = timeFormat(timer.timeLeft);
         if (timer.timeLeft === 0) {
+            stopTimer(gameState);
             stopGame(gameState, 'time');
         }
     } , 100);
@@ -216,7 +217,7 @@ function newGame() {
                 render: document.getElementById("black-time")
             }
         },
-        currentTimer: false
+        currentTimer: false,
     }
     
     //display timers
@@ -266,6 +267,6 @@ function stopGame(gameState, condition) {
     newGameButton.id = "new-game-button";
     newGameButton.innerHTML = "New Game";
     gameState.gameStatusRender.parentElement.appendChild(newGameButton);
-    newGameButton.onclick = () => newGame()
+    newGameButton.onclick = () => {newGameButton.remove(); newGame();};
 
 }
