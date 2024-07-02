@@ -14,6 +14,9 @@ function flipBoard(gameState) {
     if (gameState.currentSelection) {
         allElements = [...allElements, ...gameState.currentSelection.moveDisplays];
     }
+    if (gameState.checkDisplay) {
+        gameState.checkDisplay.updateDisplay(gameState.checkDisplay.square);
+    }
     allElements.forEach( (element) => {
         element.updateDisplay(element.square);
     })
@@ -180,8 +183,8 @@ function createSide(params) {
         rooka: new Rook({...params, square: {x: 0, y: params.color==='white' ? 0 : 7}, id: 'rooka'}),
         knightb: new Knight({...params, square: {x: 1, y: params.color==='white' ? 0 : 7}, id: 'knightb'}),
         bishopc: new Bishop({...params, square: {x: 2, y: params.color==='white' ? 0 : 7}, id: 'bishopc'}),
-        king: new King({...params, square: {x: 3, y: params.color==='white' ? 0 : 7}, id: 'king'}),
-        queen: new Queen({...params, square: {x: 4, y: params.color==='white' ? 0 : 7},  id: 'queen'}),
+        queen: new Queen({...params, square: {x: 3, y: params.color==='white' ? 0 : 7}, id: 'queen'}),
+        king: new King({...params, square: {x: 4, y: params.color==='white' ? 0 : 7},  id: 'king'}),
         bishopf: new Bishop({...params, square: {x: 5, y: params.color==='white' ? 0 : 7}, id: 'bishopf'}),
         knightg: new Knight({...params, square: {x: 6, y: params.color==='white' ? 0 : 7}, id: 'knightg'}),
         rookh: new Rook({...params, square: {x: 7, y: params.color==='white' ? 0 : 7}, id: 'rookh'}),
@@ -244,8 +247,16 @@ function newGame() {
         if (gameState.board.squareSize != squareResize) {
             gameState.board.squareSize = squareResize;
             gameState.board.updateDisplay();
-            let allPieces = getAllPieces(gameState);
-            allPieces.forEach(piece => piece.updateDisplay(piece.square));
+            var allElements = getAllPieces(gameState);
+            if (gameState.currentSelection) {
+                allElements = [...allElements, ...gameState.currentSelection.moveDisplays];
+            }
+            if (gameState.checkDisplay) {
+                gameState.checkDisplay.updateDisplay(gameState.checkDisplay.square);
+            }
+            allElements.forEach( (element) => {
+                element.updateDisplay(element.square);
+            })
         }
     }
 }
